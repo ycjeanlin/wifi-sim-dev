@@ -22,7 +22,6 @@
 #include <fstream>
 #include <vector>
 #include <string>
-#include "time.h"
 
 using namespace ns3;
 
@@ -46,14 +45,12 @@ static void GenerateTraffic(Ptr<Socket> socket, uint32_t pktSize, uint32_t pktCo
 
 int main(int argc, char *argv[]){
 	uint32_t numNodes = 10;
-	uint32_t stopTime = 20;
-	uint32_t interval = 5;//seconds
 	bool enTracing = false;
 	bool verbose = true;
+	uint32_t stopTime = 20;
 
 	CommandLine cmd;
 	cmd.AddValue("numNodes", "number of nodes",numNodes);
-	cmd.AddValue("interval", "the period of generating pakcets", interval);
 	cmd.AddValue("enTracing", "enable Tracing", enTracing);
 	cmd.AddValue("verbose", "Tell echo application to log if true", verbose);
 
@@ -62,9 +59,6 @@ int main(int argc, char *argv[]){
 	if(verbose){
 		LogComponentEnable("WifiRound1",LOG_LEVEL_INFO);
 	}
-
-	Time pktInterval = Seconds(interval);
-
 	NodeContainer wifiNodes;
 	wifiNodes.Create(numNodes);
 
