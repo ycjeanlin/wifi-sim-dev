@@ -1,10 +1,14 @@
 /*Name: Jean Lin
- *This is the first trial of ns3 mobility.
+ *This is the second trial of ns3 mobility.
  *There are 10 nodes in the system and walk randomly.
- *
+ *And Node[0] is the source node which send packets to its neighbor.
+ *You can use 
+ *./waf --run "[PATH}/round2 --PrintHelp"
+ *for more information.
  *
  */
 
+//Including libraries
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
 #include "ns3/mobility-module.h"
@@ -20,6 +24,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <vector>
 #include <string>
 #include "time.h"
@@ -31,58 +36,71 @@ using namespace ns3;
 using namespace std;
 NS_LOG_COMPONENT_DEFINE("WifiRound1");
 
-void RecievePAcket(Ptr<Socket> socket){
+//Function declaration
+static void GenerateTraffic(Ptr<Node> srcNode, uint32_t pktSize, uint32_t numPkt,Time pktInterval, string msg);
+
+
+void ReceivePacket(Ptr<Socket> socket){
 	Ptr<Packet> pkt;
 	Address from;
 	string msg;
-	string log;
+	string data;
+	stringstream log;
 	int node_id = socket->GetNode()->GetId();
 	
 	pkt = socket->RecvFrom(from);
 	uint8_t *buffer = new uint8_t[pkt->GetSize()];
 	uint32_t content = pkt->CopyData(buffer, pkt->GetSize());
 	data = string((char*)buffer);
+	
+	log <<Simulator::Now().GetSeconds()<<"Node["<<node_id<<"]==> Content: "<<data<<" pktSize = "<<content<<"bytes";
+	NS_LOG_UNCOND(log.str());
 }
 
 static void GenerateTraffic(Ptr<Node> srcNode, uint32_t pktSize, uint32_t numPkt,Time pktInterval, string msg){
 	TypeId tid = TypeId::LookupByName("ns3::UdpSocketFactory");
-
+	stringstream sendMsg;
+	stringstream log;
+	
 	//sender socket setting
-	Prt<Socket> source = Socket::CreateSocket(srcNode, tid);
+	Ptr<Socket> source = Socket::CreateSocket(srcNode, tid);
 	InetSocketAddress remote = InetSocketAddress(Ipv4Address("255.255.255.255"), 80);
 	source->SetAllowBroadcast(true);
 	source->Connect(remote);
 	
 	if(numPkt>0){
+		sendMsg<<msg;
+		Ptr<Packet> pkt = Create<Packet>((uint8_t*) sendMsg.str().c_str(), pktSize);
 	
-		Ptr<Packet> pkt = Creat<Packet>((uint8_t*) msg.str().c_str(), pktSize);
-	
-		source->Send(pkt1);
-
-		cout<<Simulator::Now().GetSeconds()<<"s, Nodes: "<<srcNode->GetId()<<" sends a pakcet."<<endl;
-
-		Simulator::Schedule(Simulator::Now().GetSeconds+1, &GenerateTraffic,wifiNodes.Get(initSrcNode), pktSize, numPkt-1, pktInterval, initMsg);
+		source->Send(pkt);
+		
+		log<<Simulator::Now().GetSeconds()<<"s, Nodes: "<<srcNode->GetId()<<" sends a pakcet."<<endl;
+		NS_LOG_UNCOND(log.str());
+		
+		Simulator::Schedule(pktInterval, &GenerateTraffic, srcNode, pktSize, numPkt-1, pktInterval, msg);
 	}else{
-		cout<<"Source Node: "<<scrNode->GetId()<<" packet trasmission ended."<<endl;
+		cout<<"Source Node: "<<srcNode->GetId()<<" packet trasmission ended."<<endl;
 		source->Close();
 	}
 } 
 
 int main(int argc, char *argv[]){
-	string phyMode("DsssRate1Mpbps");
+	string phyMode("DsssRate1Mbps");
 	uint32_t numNodes = 10;
 	uint32_t pktSize = 1000;//bytes
 	uint32_t numPkt = 1;//bytes
 	uint32_t stopTime = 30;
 	uint32_t interval = 5;
 	uint32_t initSrcNode = 0;
-	string initMsgi = "test";
+	string initMsg = "test";
 	bool enTracing = false;
-	bool verbose = true;
+	bool verbose = false;
 
 	CommandLine cmd;
 	cmd.AddValue("numNodes", "number of nodes",numNodes);
+	cmd.AddValue("numPkt", "number of packet",numPkt);
 	cmd.AddValue("interval", "the time period of each traffic generation",interval);
+	cmd.AddValue("stopTime", "the time when the simulation ended(s)", stopTime);
 	cmd.AddValue("enTracing", "enable Tracing", enTracing);
 	cmd.AddValue("verbose", "Tell echo application to log if true", verbose);
 
@@ -113,7 +131,7 @@ int main(int argc, char *argv[]){
 	wifiChannel.SetPropagationDelay ("ns3::ConstantSpeedPropagationDelayModel");
 	// The below FixedRssLossModel will cause the rss to be fixed regardless
 	// of the distance between the two stations, and the transmit power
-	wifiChannel.AddPropagationLoss ("ns3::FixedPropagationLossModel","MaxRange",DoubleValue (TRANSMISSION_RANGE));
+	wifiChannel.AddPropagationLoss ("ns3::RangePropagationLossModel","MaxRange",DoubleValue (TRANSMISSION_RANGE));
 	wifiPhy.SetChannel (wifiChannel.Create ());
 
 	// Add a non-QoS upper mac, and disable rate control
@@ -142,7 +160,7 @@ int main(int argc, char *argv[]){
 		std::cout<<"Ip Address "<<i<<"  = "<<addr<<std::endl;
 		InetSocketAddress local = InetSocketAddress(wifiNodes.Get(i)->GetObject<Ipv4>()->GetAddress(1,0).GetLocal(),80);
 		recvSink->Bind(local);
-		recvSink->SetRecvCallBack(MakeCallback(&ReceivePacket));
+		recvSink->SetRecvCallback(MakeCallback(&ReceivePacket));
 	}
 
 	MobilityHelper mobility;
@@ -155,7 +173,7 @@ int main(int argc, char *argv[]){
 	}
 	mobility.SetPositionAllocator(positionAlloc);
 	mobility.SetMobilityModel("ns3::RandomDirection2dMobilityModel",
-				  "Bounds", RectangleValue(Rectangle(0,100,0,100)),
+				  "Bounds", RectangleValue(Rectangle(0,30,0,30)),
 				  "Speed", RandomVariableValue(ConstantVariable(2)),
 				  "Pause", RandomVariableValue(ConstantVariable(0.2)));
 
@@ -166,7 +184,7 @@ int main(int argc, char *argv[]){
 
 	NS_LOG_INFO("Run Simulation.");
 	
-	AnimationInterface anim("round1.xml");
+	AnimationInterface anim("round2.xml");
 
 	
 	Simulator::Stop(Seconds(stopTime));
