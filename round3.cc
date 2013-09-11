@@ -32,7 +32,7 @@
 
 #define TRANSMISSION_RANGE 10.0
 
-bool lock = true;
+bool lock = false;
 
 using namespace ns3;
 using namespace std;
@@ -42,6 +42,7 @@ NS_LOG_COMPONENT_DEFINE("WifiRound3");
 static void GenerateTraffic(Ptr<Node> srcNode, uint32_t pktSize, uint32_t numPkt,Time pktInterval, string msg);
 
 void EchoPacket(Ptr<Socket> socket){
+	NS_LOG_UNCOND("Start findig neighbors");
 	Ptr<Packet> pkt;
 	Address from;
 	string msg;
@@ -52,18 +53,21 @@ void EchoPacket(Ptr<Socket> socket){
 	
 	pkt = socket->RecvFrom(from);
 	uint8_t *buffer = new uint8_t[pkt->GetSize()];
+	pkt->CopyData(buffer, pkt->GetSize());
 	data = string((char*)buffer);
 	if(data=="probe"){
-		InetSocketAddress remote = InetSocketAddress(from, 1119);
+		NS_LOG_UNCOND("Start Echo");
+		InetSocketAddress remote = InetSocketAddress::ConvertFrom(from);
 		socket->Connect(remote);
 		sendMsg<<from;
-		pkt = Create<Packet>((uint8_t*) sendMsg.str().c_str(), pktSize);
+		pkt = Create<Packet>((uint8_t*) sendMsg.str().c_str(), 1000);
 		socket->Send(pkt);
 		
 		log <<Simulator::Now().GetSeconds()<<"Node["<<node_id<<"]==> Content: "<<from<<" sent";
 		NS_LOG_UNCOND(log.str());
 	}else{
-		log <<Simulator::Now().GetSeconds()<<"Node["<<node_id<<"]==> Content: "<<from<<" Receive";
+		NS_LOG_UNCOND("Start Collecting Neighbor list");
+		log <<Simulator::Now().GetSeconds()<<"Node["<<node_id<<"]==> Content: "<<data<<" Receive";
 		NS_LOG_UNCOND(log.str());
 		lock=false;
 	}
@@ -86,24 +90,6 @@ void ReceivePacket(Ptr<Socket> socket){
 	NS_LOG_UNCOND(log.str());
 }
 
-void ReceiveAck(Ptr<Socket> socket){
-	Ptr<Packet> pkt;
-	Address from;
-	string msg;
-	string data;
-	stringstream log;
-	int node_id = socket->GetNode()->GetId();
-	
-	while (pkt= socket->RecvFrom(from)){ 
-	
-		uint8_t *buffer = new uint8_t[pkt->GetSize()];
-		uint32_t content = pkt->CopyData(buffer, pkt->GetSize());
-		data = string((char*)buffer);
-		
-		log <<Simulator::Now().GetSeconds()<<"Node["<<node_id<<"]==> Get Packet from "<<from;
-		NS_LOG_UNCOND(log.str());
-	}
-}
 
 static void GenerateTraffic(Ptr<Node> srcNode, uint32_t pktSize, uint32_t numPkt,Time pktInterval, string msg){
 	TypeId tid = TypeId::LookupByName("ns3::UdpSocketFactory");
@@ -124,11 +110,11 @@ static void GenerateTraffic(Ptr<Node> srcNode, uint32_t pktSize, uint32_t numPkt
 		Ptr<Packet> pkt = Create<Packet>((uint8_t*) sendMsg.str().c_str(), pktSize);
 	
 		source->Send(pkt);
-		
+		NS_LOG_UNCOND("Stop Here");
 		while(lock){};
 		source->Connect(remote);
 		sendMsg<<msg;
-		Ptr<Packet> pkt = Create<Packet>((uint8_t*) sendMsg.str().c_str(), pktSize);
+		pkt = Create<Packet>((uint8_t*) sendMsg.str().c_str(), pktSize);
 	
 		source->Send(pkt);
 		
@@ -166,7 +152,7 @@ int main(int argc, char *argv[]){
 	
 	Time pktInterval = Seconds(interval);
 	if(verbose){
-		LogComponentEnable("WifiRound1",LOG_LEVEL_INFO);
+		LogComponentEnable("WifiRound3",LOG_LEVEL_DEBUG);
 	}
 	NodeContainer wifiNodes;
 	wifiNodes.Create(numNodes);
