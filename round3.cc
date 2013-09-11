@@ -1,5 +1,5 @@
 /*Name: Jean Lin
- *This is the third trial of ns3 mobility.
+ *This is the second trial of ns3 mobility.
  *There are 10 nodes in the system and walk randomly.
  *And Node[0] is the source node which send packets to its neighbor.
  *You can use 
@@ -32,18 +32,125 @@
 
 #define TRANSMISSION_RANGE 10.0
 
+bool lock = true;
+
 using namespace ns3;
 using namespace std;
-NS_LOG_COMPONENT_DEFINE("wifiRound3");
+NS_LOG_COMPONENT_DEFINE("WifiRound3");
 
+//Function declaration
+static void GenerateTraffic(Ptr<Node> srcNode, uint32_t pktSize, uint32_t numPkt,Time pktInterval, string msg);
 
+void EchoPacket(Ptr<Socket> socket){
+	Ptr<Packet> pkt;
+	Address from;
+	string msg;
+	string data;
+	stringstream log;
+	stringstream sendMsg;
+	int node_id = socket->GetNode()->GetId();
+	
+	pkt = socket->RecvFrom(from);
+	uint8_t *buffer = new uint8_t[pkt->GetSize()];
+	data = string((char*)buffer);
+	if(data=="probe"){
+		InetSocketAddress remote = InetSocketAddress(from, 1119);
+		socket->Connect(remote);
+		sendMsg<<from;
+		pkt = Create<Packet>((uint8_t*) sendMsg.str().c_str(), pktSize);
+		socket->Send(pkt);
+		
+		log <<Simulator::Now().GetSeconds()<<"Node["<<node_id<<"]==> Content: "<<from<<" sent";
+		NS_LOG_UNCOND(log.str());
+	}else{
+		log <<Simulator::Now().GetSeconds()<<"Node["<<node_id<<"]==> Content: "<<from<<" Receive";
+		NS_LOG_UNCOND(log.str());
+		lock=false;
+	}
+}
+
+void ReceivePacket(Ptr<Socket> socket){
+	Ptr<Packet> pkt;
+	Address from;
+	string msg;
+	string data;
+	stringstream log;
+	int node_id = socket->GetNode()->GetId();
+	
+	pkt = socket->RecvFrom(from);
+	uint8_t *buffer = new uint8_t[pkt->GetSize()];
+	uint32_t content = pkt->CopyData(buffer, pkt->GetSize());
+	data = string((char*)buffer);
+	
+	log <<Simulator::Now().GetSeconds()<<"Node["<<node_id<<"]==> Content: "<<data<<" pktSize = "<<content<<"bytes";
+	NS_LOG_UNCOND(log.str());
+}
+
+void ReceiveAck(Ptr<Socket> socket){
+	Ptr<Packet> pkt;
+	Address from;
+	string msg;
+	string data;
+	stringstream log;
+	int node_id = socket->GetNode()->GetId();
+	
+	while (pkt= socket->RecvFrom(from)){ 
+	
+		uint8_t *buffer = new uint8_t[pkt->GetSize()];
+		uint32_t content = pkt->CopyData(buffer, pkt->GetSize());
+		data = string((char*)buffer);
+		
+		log <<Simulator::Now().GetSeconds()<<"Node["<<node_id<<"]==> Get Packet from "<<from;
+		NS_LOG_UNCOND(log.str());
+	}
+}
+
+static void GenerateTraffic(Ptr<Node> srcNode, uint32_t pktSize, uint32_t numPkt,Time pktInterval, string msg){
+	TypeId tid = TypeId::LookupByName("ns3::UdpSocketFactory");
+	stringstream sendMsg;
+	stringstream log;
+	
+	//sender socket setting
+	Ptr<Socket> source = Socket::CreateSocket(srcNode, tid);
+	//
+	InetSocketAddress remote = InetSocketAddress(Ipv4Address("255.255.255.255"), 80);
+	InetSocketAddress probe = InetSocketAddress(Ipv4Address("255.255.255.255"), 1119);
+	source->SetAllowBroadcast(true);
+	source->Connect(probe);
+
+	
+	if(numPkt>0){
+		sendMsg<<"probe";
+		Ptr<Packet> pkt = Create<Packet>((uint8_t*) sendMsg.str().c_str(), pktSize);
+	
+		source->Send(pkt);
+		
+		while(lock){};
+		source->Connect(remote);
+		sendMsg<<msg;
+		Ptr<Packet> pkt = Create<Packet>((uint8_t*) sendMsg.str().c_str(), pktSize);
+	
+		source->Send(pkt);
+		
+		log<<Simulator::Now().GetSeconds()<<"s, Nodes: "<<srcNode->GetId()<<" sends a pakcet."<<endl;
+		NS_LOG_UNCOND(log.str());
+		
+		Simulator::Schedule(pktInterval, &GenerateTraffic, srcNode, pktSize, numPkt-1, pktInterval, msg);
+	}else{
+		cout<<"Source Node: "<<srcNode->GetId()<<" packet trasmission ended."<<endl;
+		source->Close();
+	}
+} 
 
 int main(int argc, char *argv[]){
 	string phyMode("DsssRate1Mbps");
 	uint32_t numNodes = 10;
+	uint32_t pktSize = 1000;//bytes
 	uint32_t numPkt = 1;//bytes
 	uint32_t stopTime = 30;
 	uint32_t interval = 5;
+	uint32_t initSrcNode = 0;
+	string initMsg = "test";
 	bool enTracing = false;
 	bool verbose = false;
 
@@ -59,8 +166,7 @@ int main(int argc, char *argv[]){
 	
 	Time pktInterval = Seconds(interval);
 	if(verbose){
-	    LogComponentEnable ("UdpEchoClientApplication", LOG_LEVEL_INFO);
-	    LogComponentEnable ("UdpEchoServerApplication", LOG_LEVEL_INFO);
+		LogComponentEnable("WifiRound1",LOG_LEVEL_INFO);
 	}
 	NodeContainer wifiNodes;
 	wifiNodes.Create(numNodes);
@@ -101,27 +207,23 @@ int main(int argc, char *argv[]){
 	Ipv4AddressHelper ipv4;
 	NS_LOG_INFO("Assign IP Addresses.");
 	ipv4.SetBase("10.1.1.0", "255.255.255.0");
-	Ipv4InterfaceContainer wifiInterface = ipv4.Assign(devices);
+	Ipv4InterfaceContainer i = ipv4.Assign(devices);
 
-
-	 UdpEchoClientHelper echoClient("",1119);
-	 echoClient.SetAttribute("MaxPackets", UintegerValue(7));
-	 echoClient.SetAttribute("Interval", TimeValue(pktInterval));
-	 echoClient.SetAttribute("PacketSize", UintegerValue(1024));
-
-	 ApplicationContainer clientApps = echoClient.Install(wifiNodes.Get(0));
-	 clientApps.Start(Seconds(2.0));
-	 clientApps.Stop(Seconds(stopTime));
-	 
-	 //Install UdpEchoSever App
-	 UdpEchoServerHelper echoServer(1119);
-	 ApplicationContainer serverApps;
-	 for(uint32_t i=1;i<numNodes;i++){
-	 		serverApps.Add(echoServer.Install(wifiNodes.Get(i)));
-	 }
-	 serverApps.Start(Seconds(1.0));
-	 serverApps.Stop(Seconds(stopTime));
-
+	TypeId tid = TypeId::LookupByName("ns3::UdpSocketFactory");
+	
+	//Assign receive sink to each nodes
+	for(uint32_t i=0;i<numNodes;i++){
+		Ptr<Socket> recvSink = Socket::CreateSocket(wifiNodes.Get(i), tid);
+		Ptr<Socket> echoSink = Socket::CreateSocket(wifiNodes.Get(i), tid);
+		Ipv4Address addr = wifiNodes.Get(i)->GetObject<Ipv4>()->GetAddress(1,0).GetLocal();
+		std::cout<<"Ip Address "<<i<<"  = "<<addr<<std::endl;
+		InetSocketAddress recvLocal = InetSocketAddress(wifiNodes.Get(i)->GetObject<Ipv4>()->GetAddress(1,0).GetLocal(),80);
+		InetSocketAddress echoLocal = InetSocketAddress(wifiNodes.Get(i)->GetObject<Ipv4>()->GetAddress(1,0).GetLocal(),1119);
+		recvSink->Bind(recvLocal);
+		echoSink->Bind(echoLocal);
+		recvSink->SetRecvCallback(MakeCallback(&ReceivePacket));
+		echoSink->SetRecvCallback(MakeCallback(&EchoPacket));
+	}
 
 	MobilityHelper mobility;
 	Ptr<ListPositionAllocator> positionAlloc = CreateObject<ListPositionAllocator>();
@@ -139,9 +241,12 @@ int main(int argc, char *argv[]){
 
 	mobility.Install(wifiNodes);
 
+	
+	Simulator::Schedule(Seconds(0.0), &GenerateTraffic,wifiNodes.Get(initSrcNode), pktSize, numPkt, pktInterval, initMsg);
+
 	NS_LOG_INFO("Run Simulation.");
 	
-	AnimationInterface anim("round3.xml");
+	AnimationInterface anim("round2.xml");
 
 	
 	Simulator::Stop(Seconds(stopTime));
