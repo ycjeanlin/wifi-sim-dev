@@ -45,6 +45,7 @@ void EchoPacket(Ptr<Socket> socket){
 	NS_LOG_UNCOND("Start findig neighbors");
 	Ptr<Packet> pkt;
 	Address from;
+	Ipv4Address ipv4_from;
 	string msg;
 	string data;
 	stringstream log;
@@ -57,14 +58,22 @@ void EchoPacket(Ptr<Socket> socket){
 	data = string((char*)buffer);
 	if(data=="probe"){
 		NS_LOG_UNCOND("Start Echo");
+		
 		InetSocketAddress remote = InetSocketAddress::ConvertFrom(from);
-		socket->Connect(remote);
-		sendMsg<<from;
+		ipv4_from = remote.GetIpv4();
+		InetSocketAddress echo = InetSocketAddress(ipv4_from,1119);
+		socket->Connect(echo);
+		sendMsg<<ipv4_from<<":"<<remote.GetPort();
 		pkt = Create<Packet>((uint8_t*) sendMsg.str().c_str(), 1000);
 		socket->Send(pkt);
-		
-		log <<Simulator::Now().GetSeconds()<<"Node["<<node_id<<"]==> Content: "<<from<<" sent";
+		log <<Simulator::Now().GetSeconds()<<"Node["<<node_id<<"]==> Content: "<<ipv4_from<<":"<<remote.GetPort()<<" sent";
 		NS_LOG_UNCOND(log.str());
+	}else{
+		InetSocketAddress remote = InetSocketAddress::ConvertFrom(from);
+		log.flush();
+		log <<Simulator::Now().GetSeconds()<<" Node["<<node_id<<"]==> Content: "<<remote.GetIpv4()<<":"<<remote.GetPort()<<" Received";
+		NS_LOG_UNCOND(log.str());
+
 	}
 }
 
@@ -91,7 +100,7 @@ static void GenerateTraffic(Ptr<Node> srcNode, uint32_t pktSize, uint32_t numPkt
 	stringstream sendMsg;
 	stringstream log;
 	Address neighborAddr;
-	int i = 0;
+	//int i = 0;
 	
 	//sender socket setting
 	Ptr<Socket> source = Socket::CreateSocket(srcNode, tid);
@@ -107,13 +116,15 @@ static void GenerateTraffic(Ptr<Node> srcNode, uint32_t pktSize, uint32_t numPkt
 	
 		source->Send(pkt);
 		
+	/*	while(!(pkt = source->RecvFrom(neighborAddr))){}
+		
 		log.flush();
-		while(pkt = source->RecvFrom(neighborAddr)){
+		do{
 			i++;
 			log<<"Neighbor["<<i<<"]: "<<neighborAddr<<endl;
 			
-		}
-		NS_LOG_UNCOND(log.str());
+		}while(pkt = source->RecvFrom(neighborAddr));
+		NS_LOG_UNCOND(log.str());*/
 		NS_LOG_UNCOND("Stop Here");
 				
 		Simulator::Schedule(pktInterval, &GenerateTraffic, srcNode, pktSize, numPkt-1, pktInterval, msg);
@@ -211,10 +222,7 @@ int main(int argc, char *argv[]){
 		x += 1.0;
 	}
 	mobility.SetPositionAllocator(positionAlloc);
-	mobility.SetMobilityModel("ns3::RandomDirection2dMobilityModel",
-				  "Bounds", RectangleValue(Rectangle(0,30,0,30)),
-				  "Speed", RandomVariableValue(ConstantVariable(2)),
-				  "Pause", RandomVariableValue(ConstantVariable(0.2)));
+	mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
 
 	mobility.Install(wifiNodes);
 
