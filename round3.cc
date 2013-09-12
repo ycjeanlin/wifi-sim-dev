@@ -65,11 +65,6 @@ void EchoPacket(Ptr<Socket> socket){
 		
 		log <<Simulator::Now().GetSeconds()<<"Node["<<node_id<<"]==> Content: "<<from<<" sent";
 		NS_LOG_UNCOND(log.str());
-	}else{
-		NS_LOG_UNCOND("Start Collecting Neighbor list");
-		log <<Simulator::Now().GetSeconds()<<"Node["<<node_id<<"]==> Content: "<<data<<" Receive";
-		NS_LOG_UNCOND(log.str());
-		lock=false;
 	}
 }
 
@@ -95,11 +90,12 @@ static void GenerateTraffic(Ptr<Node> srcNode, uint32_t pktSize, uint32_t numPkt
 	TypeId tid = TypeId::LookupByName("ns3::UdpSocketFactory");
 	stringstream sendMsg;
 	stringstream log;
+	Address neighborAddr;
+	int i = 0;
 	
 	//sender socket setting
 	Ptr<Socket> source = Socket::CreateSocket(srcNode, tid);
 	//
-	InetSocketAddress remote = InetSocketAddress(Ipv4Address("255.255.255.255"), 80);
 	InetSocketAddress probe = InetSocketAddress(Ipv4Address("255.255.255.255"), 1119);
 	source->SetAllowBroadcast(true);
 	source->Connect(probe);
@@ -110,20 +106,18 @@ static void GenerateTraffic(Ptr<Node> srcNode, uint32_t pktSize, uint32_t numPkt
 		Ptr<Packet> pkt = Create<Packet>((uint8_t*) sendMsg.str().c_str(), pktSize);
 	
 		source->Send(pkt);
+		
+		log.flush();
+		while(pkt = source->RecvFrom(neighborAddr)){
+			i++;
+			log<<"Neighbor["<<i<<"]: "<<neighborAddr<<endl;
+			
+		}
 		NS_LOG_UNCOND("Stop Here");
-		while(lock){};
-		source->Connect(remote);
-		sendMsg<<msg;
-		pkt = Create<Packet>((uint8_t*) sendMsg.str().c_str(), pktSize);
-	
-		source->Send(pkt);
-		
-		log<<Simulator::Now().GetSeconds()<<"s, Nodes: "<<srcNode->GetId()<<" sends a pakcet."<<endl;
-		NS_LOG_UNCOND(log.str());
-		
+				
 		Simulator::Schedule(pktInterval, &GenerateTraffic, srcNode, pktSize, numPkt-1, pktInterval, msg);
 	}else{
-		cout<<"Source Node: "<<srcNode->GetId()<<" packet trasmission ended."<<endl;
+		cout<<"Source Node: "<<srcNode->GetId()<<" packet transmission ended."<<endl;
 		source->Close();
 	}
 } 
@@ -199,15 +193,11 @@ int main(int argc, char *argv[]){
 	
 	//Assign receive sink to each nodes
 	for(uint32_t i=0;i<numNodes;i++){
-		Ptr<Socket> recvSink = Socket::CreateSocket(wifiNodes.Get(i), tid);
 		Ptr<Socket> echoSink = Socket::CreateSocket(wifiNodes.Get(i), tid);
 		Ipv4Address addr = wifiNodes.Get(i)->GetObject<Ipv4>()->GetAddress(1,0).GetLocal();
 		std::cout<<"Ip Address "<<i<<"  = "<<addr<<std::endl;
-		InetSocketAddress recvLocal = InetSocketAddress(wifiNodes.Get(i)->GetObject<Ipv4>()->GetAddress(1,0).GetLocal(),80);
 		InetSocketAddress echoLocal = InetSocketAddress(wifiNodes.Get(i)->GetObject<Ipv4>()->GetAddress(1,0).GetLocal(),1119);
-		recvSink->Bind(recvLocal);
 		echoSink->Bind(echoLocal);
-		recvSink->SetRecvCallback(MakeCallback(&ReceivePacket));
 		echoSink->SetRecvCallback(MakeCallback(&EchoPacket));
 	}
 
