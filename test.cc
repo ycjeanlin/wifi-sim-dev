@@ -42,7 +42,6 @@ NS_LOG_COMPONENT_DEFINE("WifiRound3");
 static void GenerateTraffic(Ptr<Node> srcNode, uint32_t pktSize, uint32_t numPkt,Time pktInterval, string msg);
 
 void EchoPacket(Ptr<Socket> socket){
-	NS_LOG_UNCOND("Start findig neighbors");
 	Ptr<Packet> pkt;
 	Address from;
 	Ipv4Address ipv4_from;
@@ -66,7 +65,7 @@ void EchoPacket(Ptr<Socket> socket){
 		sendMsg<<ipv4_from<<":"<<remote.GetPort();
 		pkt = Create<Packet>((uint8_t*) sendMsg.str().c_str(), 1000);
 		socket->Send(pkt);
-		log <<Simulator::Now().GetSeconds()<<"Node["<<node_id<<"]==> Content: "<<ipv4_from<<":"<<remote.GetPort()<<" sent";
+		log <<Simulator::Now().GetSeconds()<<" Node["<<node_id<<"]==> Content: "<<ipv4_from<<":"<<echo.GetPort()<<" sent";
 		NS_LOG_UNCOND(log.str());
 	}else{
 		InetSocketAddress remote = InetSocketAddress::ConvertFrom(from);
@@ -113,19 +112,8 @@ static void GenerateTraffic(Ptr<Node> srcNode, uint32_t pktSize, uint32_t numPkt
 	if(numPkt>0){
 		sendMsg<<"probe";
 		Ptr<Packet> pkt = Create<Packet>((uint8_t*) sendMsg.str().c_str(), pktSize);
-	
 		source->Send(pkt);
 		
-	/*	while(!(pkt = source->RecvFrom(neighborAddr))){}
-		
-		log.flush();
-		do{
-			i++;
-			log<<"Neighbor["<<i<<"]: "<<neighborAddr<<endl;
-			
-		}while(pkt = source->RecvFrom(neighborAddr));
-		NS_LOG_UNCOND(log.str());*/
-		NS_LOG_UNCOND("Stop Here");
 				
 		Simulator::Schedule(pktInterval, &GenerateTraffic, srcNode, pktSize, numPkt-1, pktInterval, msg);
 	}else{
