@@ -101,7 +101,6 @@ static void GenerateTraffic(Ptr<Node> srcNode, uint32_t pktSize, uint32_t numPkt
 	stringstream sendMsg;
 	stringstream log;
 	Address neighborAddr;
-	int i = 0;
 	
 	//sender socket setting
 	Ptr<Socket> source = Socket::CreateSocket(srcNode, tid);
