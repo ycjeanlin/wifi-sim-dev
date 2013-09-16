@@ -42,7 +42,7 @@ NS_LOG_COMPONENT_DEFINE("WifiRound3");
 static void GenerateTraffic(Ptr<Node> srcNode, uint32_t pktSize, uint32_t numPkt,Time pktInterval, string msg);
 
 void EchoPacket(Ptr<Socket> socket){
-	NS_LOG_UNCOND("Start findig neighbors");
+
 	Ptr<Packet> pkt;
 	Address from;
 	string msg;
