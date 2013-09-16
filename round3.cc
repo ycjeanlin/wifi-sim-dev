@@ -31,12 +31,15 @@
 #include "string.h"
 
 #define TRANSMISSION_RANGE 10.0
-
-bool lock = true;
+#define NUM_NODES 10
 
 using namespace ns3;
 using namespace std;
 NS_LOG_COMPONENT_DEFINE("WifiRound3");
+
+Ipv4Address nodeNeighborsIps[NUM_NODES][10];
+uint32_t numNeighbors[NUM_NODES];
+
 
 //Function declaration
 static void GenerateTraffic(Ptr<Node> srcNode, uint32_t pktSize, uint32_t numPkt,Time pktInterval, string msg);
@@ -69,12 +72,20 @@ void EchoPacket(Ptr<Socket> socket){
 		log <<Simulator::Now().GetSeconds()<<" Node["<<node_id<<"]==> Content: "<<sendMsg.str()<<" sent";
 		NS_LOG_UNCOND(log.str());
 	}else{
-		InetSocketAddress remote = InetSocketAddress::ConvertFrom(from);
-		log.flush();
-		log <<Simulator::Now().GetSeconds()<<" Node["<<node_id<<"]==> Content: "<<remote.GetIpv4()<<":"<<remote.GetPort()<<" Received";
-		NS_LOG_UNCOND(log.str());
-		lock=false;
+		numNeighbors[node_id]=0;
+		do{  
+			numNeoghbors[node_id]++;
+			InetSocketAddress remote = InetSocketAddress::ConvertFrom(from);
+			log.flush();
+			log <<Simulator::Now().GetSeconds()<<" Node["<<node_id<<"]==> Content: "<<remote.GetIpv4()<<":"<<remote.GetPort()<<" Received";
+			NS_LOG_UNCOND(log.str());
+		}while (packet= socket->RecvFrom(from));
+	}
+}
 
+void getNeighborhood(Ipv4Address neighborIps[], uint32_t nodeId){
+	for(int i=0;i<numNeighbors[nodeId];i++){
+		nodeNeighborsIps[nodeId][i]=neighborIps[i];
 	}
 }
 
@@ -101,29 +112,28 @@ static void GenerateTraffic(Ptr<Node> srcNode, uint32_t pktSize, uint32_t numPkt
 	stringstream sendMsg;
 	stringstream log;
 	Address neighborAddr;
-	
-	//sender socket setting
-	Ptr<Socket> source = Socket::CreateSocket(srcNode, tid);
-	//
-	InetSocketAddress probe = InetSocketAddress(Ipv4Address("255.255.255.255"), 1119);
-	source->SetAllowBroadcast(true);
-	source->Connect(probe);
 
 	
 	if(numPkt>0){
+		//sender socket setting
+		Ptr<Socket> source = Socket::CreateSocket(srcNode, tid);
+		InetSocketAddress probe = InetSocketAddress(Ipv4Address("255.255.255.255"), 1119);
+		source->SetAllowBroadcast(true);
+		source->Connect(probe);
+		
+		//finding neighbors
 		sendMsg<<"probe";
 		Ptr<Packet> pkt = Create<Packet>((uint8_t*) sendMsg.str().c_str(), pktSize);
 		source->Send(pkt);
 		
 		
-		while(lock){
-			//finding neighbor
+		if(numNeighbors>0){
+
+					
+			//Simulator::Schedule(pktInterval, &GenerateTraffic, srcNode, pktSize, numPkt-1, pktInterval, msg);
+		}else{//if no neighbors continue probing 
+			Simulator::Schedule(pktInterval, &GenerateTraffic, srcNode, pktSize, numPkt, pktInterval, msg);
 		}
-		sendMsg.flush();
-		sendMsg<<"test";
-		pkt = Create<Packet>((uint8_t*) sendMsg.str().c_str(), pktSize);
-				
-		Simulator::Schedule(pktInterval, &GenerateTraffic, srcNode, pktSize, numPkt-1, pktInterval, msg);
 	}else{
 		cout<<"Source Node: "<<srcNode->GetId()<<" packet transmission ended."<<endl;
 		source->Close();
