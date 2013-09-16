@@ -32,7 +32,7 @@
 
 #define TRANSMISSION_RANGE 10.0
 
-bool lock = false;
+bool lock = true;
 
 using namespace ns3;
 using namespace std;
@@ -45,6 +45,7 @@ void EchoPacket(Ptr<Socket> socket){
 
 	Ptr<Packet> pkt;
 	Address from;
+	Ipv4Address ipv4_from;
 	string msg;
 	string data;
 	stringstream log;
@@ -58,13 +59,22 @@ void EchoPacket(Ptr<Socket> socket){
 	if(data=="probe"){
 		NS_LOG_UNCOND("Start Echo");
 		InetSocketAddress remote = InetSocketAddress::ConvertFrom(from);
-		socket->Connect(remote);
-		sendMsg<<from;
+		ipv4_from = remote.GetIpv4();
+		InetSocketAddress echo = InetSocketAddress(ipv4_from,1119);
+		socket->Connect(echo);
+		sendMsg<<ipv4_from<<":"<<echo.GetPort();
 		pkt = Create<Packet>((uint8_t*) sendMsg.str().c_str(), 1000);
 		socket->Send(pkt);
 		
-		log <<Simulator::Now().GetSeconds()<<"Node["<<node_id<<"]==> Content: "<<from<<" sent";
+		log <<Simulator::Now().GetSeconds()<<" Node["<<node_id<<"]==> Content: "<<sendMsg.str()<<" sent";
 		NS_LOG_UNCOND(log.str());
+	}else{
+		InetSocketAddress remote = InetSocketAddress::ConvertFrom(from);
+		log.flush();
+		log <<Simulator::Now().GetSeconds()<<" Node["<<node_id<<"]==> Content: "<<remote.GetIpv4()<<":"<<remote.GetPort()<<" Received";
+		NS_LOG_UNCOND(log.str());
+		lock=false;
+
 	}
 }
 
@@ -104,17 +114,15 @@ static void GenerateTraffic(Ptr<Node> srcNode, uint32_t pktSize, uint32_t numPkt
 	if(numPkt>0){
 		sendMsg<<"probe";
 		Ptr<Packet> pkt = Create<Packet>((uint8_t*) sendMsg.str().c_str(), pktSize);
-	
 		source->Send(pkt);
 		
-		log.flush();
-		while(pkt = source->RecvFrom(neighborAddr)){
-			i++;
-			log<<"Neighbor["<<i<<"]: "<<neighborAddr<<endl;
-			
+		
+		while(lock){
+			//finding neighbor
 		}
-		NS_LOG_UNCOND(log.str());
-		NS_LOG_UNCOND("Stop Here");
+		sendMsg.flush();
+		sendMsg<<"test";
+		pkt = Create<Packet>((uint8_t*) sendMsg.str().c_str(), pktSize);
 				
 		Simulator::Schedule(pktInterval, &GenerateTraffic, srcNode, pktSize, numPkt-1, pktInterval, msg);
 	}else{
