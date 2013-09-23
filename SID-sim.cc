@@ -8,3 +8,9 @@
  * Default total interests in the system: 10
  */
 
+#include <iostream>
+
+using namespace std;
+
+//Functions Declaration
+
