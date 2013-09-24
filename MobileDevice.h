@@ -20,20 +20,20 @@ class MobileDevice{
 		void updateADCL(uint32_t interests[], double pktValtemp[][]);
 		void updateCRCL(uint32_t nodeId, double contactP[], int ptr);
 		int getCheckContactP(double contactP[][]);
-		void setPktList(const uint32_t pktContainer[][]);
+		void setPktList(const uint32_t pktContainer[][], int ptr);
 		void setCheckList(const vector<Check> &chkContainer);
 		uint32_t nodeId;
 		uint32_t AdPktContainer[BUFFER_SIZE][5]; 
 		int ptrAdContainer;
-		Vector<Check> checkContainer;	
+		vector<Check> checkContainer;	
 	private:
 		uint32_t nodeInterests[NUM_OF_USER_INTERESTS];
 		double pktValue[NUM_OF_INTERESTS][4]; //ad contact likelihood
 		double checkValue[BUFFER_SIZE][5]; //check reward contact likelihood
 		int ptrChkValue;
 		uint32_t credits;
-		uint32_t pktList[BUFFER_SIZE][5]; 
-
+		uint32_t pktList[BUFFER_SIZE][3];
+		vector<Check> chkList;
 };
 
 void MobileDevice::updateADCL(uint32_t interests[], double pktValtemp[][]){
@@ -114,7 +114,7 @@ void MobileDevice::updateCRCL(uint32_t nodeId, double contactP[][], int ptr){
 	}
 }
 
-int getCheckContactP(double contactP[][]){
+int MobileDevice::getCheckContactP(double contactP[][]){
 	int ptr = 0;
 
 	for (int i = 0; i < ptrChkValue; i++){
@@ -124,4 +124,39 @@ int getCheckContactP(double contactP[][]){
 	}
 
 	return ptr;
+}
+
+void MobileDevice::setPktList(const uint32_t pktContainer[][], int ptr){
+	bool found;
+	int idx = 0;
+
+	for (int i = 0; i < ptr; i++){
+		if(pktContainer[i][4] != 0){
+			found = false;
+			for(int j = 0;j<ptrAdContainer;j++){
+				if(AdPktContainer[j][0] == pktContainer[i][0]){
+					found = true;
+					break;
+				}
+			}
+
+			if(!found){
+				pktList[idx][0]=i;
+				pktList[idx][1]=pktContainer[i][2];
+				pktList[idx][2]=pktContainer[i][3];
+				idx++;
+			}
+		}
+	}
+}
+
+void MobileDevice::setCheckList(const vector<Check> &chkContainer){
+	bool found;
+
+	for (int i = 0; i < chkContainer.size(); i++){
+		if(chkContainer[i].provider == nodeId){
+			chkList.push_back(chkContainer[i]);
+		}
+	}
+
 }
