@@ -10,18 +10,17 @@
 
 struct Check{
 	uint32_t provider;
-	bool sign;
 	uint32_t faceValue;
 };
 
 class MobileDevice{
 	public:
-		void NodeInterets(uint32_t interests[]);
 		void updateADCL(uint32_t interests[], double pktValtemp[][]);
 		void updateCRCL(uint32_t nodeId, double contactP[], int ptr);
 		int getCheckContactP(double contactP[][]);
 		void setPktList(const uint32_t pktContainer[][], int ptr);
 		void setCheckList(const vector<Check> &chkContainer);
+		void recvAdPacket(uint32_t pktContainer[][], vector<Check> &chkContainer);
 		uint32_t nodeId;
 		uint32_t AdPktContainer[BUFFER_SIZE][5]; 
 		int ptrAdContainer;
@@ -33,7 +32,8 @@ class MobileDevice{
 		int ptrChkValue;
 		uint32_t credits;
 		uint32_t pktList[BUFFER_SIZE][3];
-		vector<Check> chkList;
+		int ptrPktList;
+		vector<Check> chkList; //for cash the checks of the node
 };
 
 void MobileDevice::updateADCL(uint32_t interests[], double pktValtemp[][]){
@@ -151,12 +151,31 @@ void MobileDevice::setPktList(const uint32_t pktContainer[][], int ptr){
 }
 
 void MobileDevice::setCheckList(const vector<Check> &chkContainer){
-	bool found;
 
 	for (int i = 0; i < chkContainer.size(); i++){
 		if(chkContainer[i].provider == nodeId){
 			chkList.push_back(chkContainer[i]);
 		}
 	}
+}
 
+void MobileDevice::recvAdPacket(uint32_t pktContainer[][], vector<Check> &chkContainer){
+	for(int i=0;i<ptrPktList;i++){
+		for(int j=0;j<NUM_OF_USER_INTERESTS;j++){
+
+			if(nodeInterests[j] == pktList[i][2]){
+				//Receiving the AD packet
+				if(ptrAdContainer<BUFFER_SIZE){
+					pktContainer[pktList[i][0]][4]--;
+					for (int k = 0; k < 4; k++){
+						AdPktContainer[ptrAdContainer][k] = pktContainer[pktList[i][0]][k];
+					}
+					AdPktContainer[ptrAdContainer][k] = 0;
+					ptrAdContainer++;
+					//sign the check
+					chkContainer.push_back(Check(pktContainer[pktList[i][0]][1], pktList[i][1]));					
+				}
+			}
+		}
+	}
 }
