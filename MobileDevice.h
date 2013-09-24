@@ -54,3 +54,9 @@ void MobileDevice::updateADCL(uint32_t interests[], const double pktValue[][]){
 		
 
 }
+
+void MobileDevice::updateCRCL(uint32_t interests[], const double pktValue[][]){
+	double directContactP;
+	double inDirectContactP;
+
+}
