@@ -31,7 +31,12 @@
 #include "string.h"
 
 #define TRANSMISSION_RANGE 10.0
+<<<<<<< HEAD
 #define NUM_NODES 10
+=======
+
+bool lock = false;
+>>>>>>> 0ecb23e25d0b5b50d9f7a4a3b7394ed87e4c5b79
 
 using namespace ns3;
 using namespace std;
@@ -45,7 +50,6 @@ uint32_t numNeighbors[NUM_NODES];
 static void GenerateTraffic(Ptr<Node> srcNode, uint32_t pktSize, uint32_t numPkt,Time pktInterval, string msg);
 
 void EchoPacket(Ptr<Socket> socket){
-
 	Ptr<Packet> pkt;
 	Address from;
 	Ipv4Address ipv4_from;
@@ -61,17 +65,18 @@ void EchoPacket(Ptr<Socket> socket){
 	data = string((char*)buffer);
 	if(data=="probe"){
 		NS_LOG_UNCOND("Start Echo");
+		
 		InetSocketAddress remote = InetSocketAddress::ConvertFrom(from);
 		ipv4_from = remote.GetIpv4();
 		InetSocketAddress echo = InetSocketAddress(ipv4_from,1119);
 		socket->Connect(echo);
-		sendMsg<<ipv4_from<<":"<<echo.GetPort();
+		sendMsg<<ipv4_from<<":"<<remote.GetPort();
 		pkt = Create<Packet>((uint8_t*) sendMsg.str().c_str(), 1000);
 		socket->Send(pkt);
-		
-		log <<Simulator::Now().GetSeconds()<<" Node["<<node_id<<"]==> Content: "<<sendMsg.str()<<" sent";
+		log <<Simulator::Now().GetSeconds()<<" Node["<<node_id<<"]==> Content: "<<ipv4_from<<":"<<echo.GetPort()<<" sent";
 		NS_LOG_UNCOND(log.str());
 	}else{
+<<<<<<< HEAD
 		numNeighbors[node_id]=0;
 		do{  
 			numNeoghbors[node_id]++;
@@ -82,6 +87,12 @@ void EchoPacket(Ptr<Socket> socket){
 		}while (packet= socket->RecvFrom(from));
 	}
 }
+=======
+		InetSocketAddress remote = InetSocketAddress::ConvertFrom(from);
+		log.flush();
+		log <<Simulator::Now().GetSeconds()<<" Node["<<node_id<<"]==> Content: "<<remote.GetIpv4()<<":"<<remote.GetPort()<<" Received";
+		NS_LOG_UNCOND(log.str());
+>>>>>>> 0ecb23e25d0b5b50d9f7a4a3b7394ed87e4c5b79
 
 void getNeighborhood(Ipv4Address neighborIps[], uint32_t nodeId){
 	for(int i=0;i<numNeighbors[nodeId];i++){
@@ -112,6 +123,17 @@ static void GenerateTraffic(Ptr<Node> srcNode, uint32_t pktSize, uint32_t numPkt
 	stringstream sendMsg;
 	stringstream log;
 	Address neighborAddr;
+<<<<<<< HEAD
+=======
+	//int i = 0;
+	
+	//sender socket setting
+	Ptr<Socket> source = Socket::CreateSocket(srcNode, tid);
+	//
+	InetSocketAddress probe = InetSocketAddress(Ipv4Address("255.255.255.255"), 1119);
+	source->SetAllowBroadcast(true);
+	source->Connect(probe);
+>>>>>>> 0ecb23e25d0b5b50d9f7a4a3b7394ed87e4c5b79
 
 	
 	if(numPkt>0){
@@ -126,6 +148,7 @@ static void GenerateTraffic(Ptr<Node> srcNode, uint32_t pktSize, uint32_t numPkt
 		Ptr<Packet> pkt = Create<Packet>((uint8_t*) sendMsg.str().c_str(), pktSize);
 		source->Send(pkt);
 		
+<<<<<<< HEAD
 		
 		if(numNeighbors>0){
 
@@ -134,6 +157,10 @@ static void GenerateTraffic(Ptr<Node> srcNode, uint32_t pktSize, uint32_t numPkt
 		}else{//if no neighbors continue probing 
 			Simulator::Schedule(pktInterval, &GenerateTraffic, srcNode, pktSize, numPkt, pktInterval, msg);
 		}
+=======
+				
+		Simulator::Schedule(pktInterval, &GenerateTraffic, srcNode, pktSize, numPkt-1, pktInterval, msg);
+>>>>>>> 0ecb23e25d0b5b50d9f7a4a3b7394ed87e4c5b79
 	}else{
 		cout<<"Source Node: "<<srcNode->GetId()<<" packet transmission ended."<<endl;
 		source->Close();
@@ -228,10 +255,7 @@ int main(int argc, char *argv[]){
 		x += 1.0;
 	}
 	mobility.SetPositionAllocator(positionAlloc);
-	mobility.SetMobilityModel("ns3::RandomDirection2dMobilityModel",
-				  "Bounds", RectangleValue(Rectangle(0,30,0,30)),
-				  "Speed", RandomVariableValue(ConstantVariable(2)),
-				  "Pause", RandomVariableValue(ConstantVariable(0.2)));
+	mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
 
 	mobility.Install(wifiNodes);
 
