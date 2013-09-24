@@ -21,6 +21,7 @@ class MobileDevice{
 		void setPktList(const uint32_t pktContainer[][], int ptr);
 		void setCheckList(const vector<Check> &chkContainer);
 		void recvAdPacket(uint32_t pktContainer[][], vector<Check> &chkContainer);
+		uint32_t cashChecks(vector<Check> &chkContainer);
 		uint32_t nodeId;
 		uint32_t AdPktContainer[BUFFER_SIZE][5]; 
 		int ptrAdContainer;
@@ -33,7 +34,8 @@ class MobileDevice{
 		uint32_t credits;
 		uint32_t pktList[BUFFER_SIZE][3];
 		int ptrPktList;
-		vector<Check> chkList; //for cash the checks of the node
+		int chkList[BUFFER_SIZE]; //for cash the checks of the node
+		int ptrChkList;
 };
 
 void MobileDevice::updateADCL(uint32_t interests[], double pktValtemp[][]){
@@ -151,12 +153,14 @@ void MobileDevice::setPktList(const uint32_t pktContainer[][], int ptr){
 }
 
 void MobileDevice::setCheckList(const vector<Check> &chkContainer){
-
+	int idx;
 	for (int i = 0; i < chkContainer.size(); i++){
 		if(chkContainer[i].provider == nodeId){
-			chkList.push_back(chkContainer[i]);
+			chkList[idx]=i;
+			idx++
 		}
 	}
+	ptrChkList = idx;
 }
 
 void MobileDevice::recvAdPacket(uint32_t pktContainer[][], vector<Check> &chkContainer){
@@ -178,4 +182,15 @@ void MobileDevice::recvAdPacket(uint32_t pktContainer[][], vector<Check> &chkCon
 			}
 		}
 	}
+	ptrPktList = 0;
+}
+
+uint32_t cashChecks(vector<Check> &chkContainer){
+	uint32_t cashCredits = 0;
+	for(int i=0;i<ptrChkList;i++){
+		cashCredits =+ chkContainer[chkList[i]].faceValue;
+		chkContainer.erase(chkList[i]);
+	}
+
+	return cashCredits;
 }
