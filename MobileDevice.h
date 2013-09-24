@@ -18,7 +18,7 @@ class MobileDevice{
 	public:
 		void NodeInterets(uint32_t interests[]);
 		void updateADCL(uint32_t interests[], const double pktValue[][]);
-		void updateCRCL(uint32_t nodeId, const double contactP[]);
+		void updateCRCL(uint32_t nodeId, const double chkValue[][]);
 		void setPktList(const uint32_t pktContainer[][]);
 		void setCheckList(const vector<Check> &chkContainer);
 		uint32_t nodeId;
@@ -27,7 +27,7 @@ class MobileDevice{
 	private:
 		uint32_t nodeInterests[NUM_OF_USER_INTERESTS];
 		double pktValue[NUM_OF_INTERESTS][3]; //ad contact likelihood
-		double checkValue[BUFFER_SIZE][3]; //check reward contact likelihood
+		double checkValue[BUFFER_SIZE][4]; //check reward contact likelihood
 		uint32_t credits;
 		uint32_t pktList[BUFFER_SIZE][5]; 
 
@@ -55,8 +55,14 @@ void MobileDevice::updateADCL(uint32_t interests[], const double pktValue[][]){
 
 }
 
-void MobileDevice::updateCRCL(uint32_t interests[], const double pktValue[][]){
+void MobileDevice::updateCRCL(uint32_t nodeId, const double chkValue[][]){
 	double directContactP;
 	double inDirectContactP;
-
+	
+    	//Calculate the directly contact likelihood
+	for(int i =0;i<BUFFER_SIZE;i++){
+		if(this.checkValue[i][0] == nodeId){
+		
+		}
+	}
 }
