@@ -31,12 +31,10 @@
 #include "string.h"
 
 #define TRANSMISSION_RANGE 10.0
-<<<<<<< HEAD
+
 #define NUM_NODES 10
-=======
 
 bool lock = false;
->>>>>>> 0ecb23e25d0b5b50d9f7a4a3b7394ed87e4c5b79
 
 using namespace ns3;
 using namespace std;

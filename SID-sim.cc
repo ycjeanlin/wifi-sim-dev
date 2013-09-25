@@ -8,8 +8,31 @@
  * Default total interests in the system: 10
  */
 
-#include <iostream>
+#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/mobility-module.h"
+#include "ns3/applications-module.h"
+#include "ns3/config-store-module.h"
+#include "ns3/wifi-module.h"
+#include "ns3/netanim-module.h"
+#include "ns3/internet-module.h"
+#include "ns3/ipv4-static-routing-helper.h"
+#include "ns3/ipv4-list-routing-helper.h"
+#include "ns3/olsr-helper.h"
+#include "ns3/csma-module.h"
 
+#include <iostream>
+#include <vector>
+#include <string>
+#include "time.h"
+#include "string.h"
+
+#define TRANSMISSION_RANGE 10.0
+#define NUM_NODES 10
+
+#include "MobileDevice.h"
+
+using namespace ns3;
 using namespace std;
 
 //Functions Declaration
