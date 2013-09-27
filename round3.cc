@@ -1,10 +1,14 @@
-/*Name: Jean Lin
- *This is the second trial of ns3 mobility.
- *There are 10 nodes in the system and walk randomly.
- *And Node[0] is the source node which send packets to its neighbor.
- *You can use 
- *./waf --run "[PATH}/round3 --PrintHelp"
- *for more information.
+/* Name: Jean Lin
+ * This is the third trial of ns3 for find a node's neighbors by 
+ * echoing a packet in the TRANSMISSION range.
+ * There are 10 nodes in the system and walk randomly.
+ * Node[0] is the source node which send echo  packets to its neighbor.
+ * After the neighbors receive the echo packet send the packet back to
+ * the original sender(Node[0]). The receiver of a return echo packet 
+ * will choose a neighbor to be the communicating target.
+ * You can use 
+ * ./waf --run "[PATH}/round3 --PrintHelp"
+ * for more information.
  *
  */
 
@@ -37,7 +41,7 @@ using namespace std;
 NS_LOG_COMPONENT_DEFINE("WifiRound3");
 
 //GLobal variables
-Ipv4Address neighborIps[11];
+Ipv4Address neighborIps[10];
 
 //Function declaration
 static void GenerateTraffic(Ptr<Node> srcNode, uint32_t pktSize, uint32_t numPkt,Time pktInterval);
