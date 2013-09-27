@@ -27,6 +27,8 @@
 #include "time.h"
 #include "string.h"
 
+#include "MobileDevice.h"
+
 #define TRANSMISSION_RANGE 10.0
 #define NUM_NODES 10
 

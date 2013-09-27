@@ -37,10 +37,10 @@ using namespace std;
 NS_LOG_COMPONENT_DEFINE("WifiRound3");
 
 //GLobal variables
-Ipv4Address neighborIps[10];
+Ipv4Address neighborIps[11];
 
 //Function declaration
-static void GenerateTraffic(Ptr<Node> srcNode, uint32_t pktSize, uint32_t numPkt,Time pktInterval, string msg);
+static void GenerateTraffic(Ptr<Node> srcNode, uint32_t pktSize, uint32_t numPkt,Time pktInterval);
 
 void EchoPacket(Ptr<Socket> socket){
 	Ptr<Packet> pkt;
@@ -93,18 +93,33 @@ void ReceivePacket(Ptr<Socket> socket){
 	log <<Simulator::Now().GetSeconds()<<"Node["<<node_id<<"]==> Content: "<<data<<" pktSize = "<<content<<"bytes";
 	NS_LOG_UNCOND(log.str());
 }
-static void getNeighborAddr(Ptr<Node> srcNode, Ipv4Address *neighborAddr){
+static void sendNeighborAd(Ptr<Node> srcNode, uint32_t pktSize, uint32_t numPkt,Time pktInterval){
+	TypeId tid = TypeId::LookupByName("ns3::UdpSocketFactory");
 	uint32_t node_id;
-	NS_LOG_UNCOND("Get neighbor Address");	
+	stringstream sendMsg;
+	stringstream log;
+
+	NS_LOG_UNCOND("start sending Ad");	
 	node_id = srcNode->GetId();
-	(*neighborAddr) = neighborIps[node_id];
+
+	//sender socket setting
+	Ptr<Socket> source = Socket::CreateSocket(srcNode, tid);
+	//
+	InetSocketAddress receiver = InetSocketAddress(neighborIps[nodeId], 80);
+	source->SetAllowBroadcast(true);
+	source->Connect(receiver);
+
+	sendMsg<<"test";
+	Ptr<Packet> pkt = Create<Packet>((uint8_t*) sendMsg.str().c_str(), pktSize);
+	source->Send(pkt);
+
+	Simulator::Schedule(pktInterval, &GenerateTraffic, srcNode, pktSize, numPkt-1, pktInterval);
 }
 
-static void GenerateTraffic(Ptr<Node> srcNode, uint32_t pktSize, uint32_t numPkt,Time pktInterval, string msg){
+static void GenerateTraffic(Ptr<Node> srcNode, uint32_t pktSize, uint32_t numPkt,Time pktInterval){
 	TypeId tid = TypeId::LookupByName("ns3::UdpSocketFactory");
 	stringstream sendMsg;
 	stringstream log;
-	Ipv4Address neighborAddr;
 	//int i = 0;
 	
 	//sender socket setting
@@ -120,16 +135,7 @@ static void GenerateTraffic(Ptr<Node> srcNode, uint32_t pktSize, uint32_t numPkt
 		Ptr<Packet> pkt = Create<Packet>((uint8_t*) sendMsg.str().c_str(), pktSize);
 		source->Send(pkt);
 		
-		Simulator::Schedule(Seconds(1.0), &getNeighborAddr, srcNode, &neighborAddr);
-		NS_LOG_UNCOND("start sending Ad");
-	      	InetSocketAddress probe = InetSocketAddress(neighborAddr, 80);
-	      	source->Connect(probe);
-		sendMsg.flush();	
-		sendMsg<<"test";
-		pkt = Create<Packet>((uint8_t*) sendMsg.str().c_str(), pktSize);
-		source->Send(pkt);
-
-		Simulator::Schedule(pktInterval, &GenerateTraffic, srcNode, pktSize, numPkt-1, pktInterval, msg);
+		Simulator::Schedule(Seconds(1.0), &sendNeighborAd, srcNode, pktSize, numPkt,pktInterval);
 	}else{
 		cout<<"Source Node: "<<srcNode->GetId()<<" packet transmission ended."<<endl;
 		source->Close();
@@ -144,7 +150,6 @@ int main(int argc, char *argv[]){
 	uint32_t stopTime = 30;
 	uint32_t interval = 5;
 	uint32_t initSrcNode = 0;
-	string initMsg = "test";
 	bool enTracing = false;
 	bool verbose = false;
 
@@ -229,7 +234,7 @@ int main(int argc, char *argv[]){
 	mobility.Install(wifiNodes);
 
 	
-	Simulator::Schedule(Seconds(0.0), &GenerateTraffic,wifiNodes.Get(initSrcNode), pktSize, numPkt, pktInterval, initMsg);
+	Simulator::Schedule(Seconds(0.0), &GenerateTraffic,wifiNodes.Get(initSrcNode), pktSize, numPkt, pktInterval);
 
 	NS_LOG_INFO("Run Simulation.");
 	
