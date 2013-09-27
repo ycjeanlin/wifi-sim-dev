@@ -106,6 +106,8 @@ static void sendNeighborAd(Ptr<Node> srcNode, uint32_t pktSize, uint32_t numPkt,
 	Ptr<Socket> source = Socket::CreateSocket(srcNode, tid);
 	//
 	InetSocketAddress receiver = InetSocketAddress(neighborIps[nodeId], 80);
+	logMsg<<"send to IP: "<<neighborIps[nodeId];
+	NS_LOG_UNCOND(logMsg.str());
 	source->SetAllowBroadcast(true);
 	source->Connect(receiver);
 
