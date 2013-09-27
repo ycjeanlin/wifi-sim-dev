@@ -68,6 +68,7 @@ void EchoPacket(Ptr<Socket> socket){
 		socket->Send(pkt);
 		logMsg <<Simulator::Now().GetSeconds()<<" Node["<<node_id<<"]==> Content: "<<ipv4_from<<":"<<echo.GetPort()<<" sent";
 		NS_LOG_UNCOND(logMsg.str());
+		
 	}else{
 		InetSocketAddress remote = InetSocketAddress::ConvertFrom(from);
 		logMsg.flush();
@@ -215,15 +216,11 @@ int main(int argc, char *argv[]){
 	//Assign receive sink to each nodes
 	for(uint32_t i=0;i<numNodes;i++){
 		Ptr<Socket> echoSink = Socket::CreateSocket(wifiNodes.Get(i), tid);
-		Ptr<Socket> recvSink = Socket::CreateSocket(wifiNodes.Get(i), tid);
 		Ipv4Address addr = wifiNodes.Get(i)->GetObject<Ipv4>()->GetAddress(1,0).GetLocal();
 		std::cout<<"Ip Address "<<i<<"  = "<<addr<<std::endl;
 		InetSocketAddress echoLocal = InetSocketAddress(wifiNodes.Get(i)->GetObject<Ipv4>()->GetAddress(1,0).GetLocal(),1119);
-		InetSocketAddress recvLocal = InetSocketAddress(wifiNodes.Get(i)->GetObject<Ipv4>()->GetAddress(1,0).GetLocal(),80);
 		echoSink->Bind(echoLocal);
-		echoSink->Bind(recvLocal);
 		echoSink->SetRecvCallback(MakeCallback(&EchoPacket));
-		echoSink->SetRecvCallback(MakeCallback(&ReceivePacket));
 	}
 
 	MobilityHelper mobility;
