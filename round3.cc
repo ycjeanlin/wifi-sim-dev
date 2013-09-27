@@ -48,7 +48,7 @@ void EchoPacket(Ptr<Socket> socket){
 	Ipv4Address ipv4_from;
 	string msg;
 	string data;
-	stringstream log;
+	stringstream logMsg;
 	stringstream sendMsg;
 	int node_id = socket->GetNode()->GetId();
 	
@@ -66,13 +66,13 @@ void EchoPacket(Ptr<Socket> socket){
 		sendMsg<<ipv4_from<<":"<<remote.GetPort();
 		pkt = Create<Packet>((uint8_t*) sendMsg.str().c_str(), 1000);
 		socket->Send(pkt);
-		log <<Simulator::Now().GetSeconds()<<" Node["<<node_id<<"]==> Content: "<<ipv4_from<<":"<<echo.GetPort()<<" sent";
-		NS_LOG_UNCOND(log.str());
+		logMsg <<Simulator::Now().GetSeconds()<<" Node["<<node_id<<"]==> Content: "<<ipv4_from<<":"<<echo.GetPort()<<" sent";
+		NS_LOG_UNCOND(logMsg.str());
 	}else{
 		InetSocketAddress remote = InetSocketAddress::ConvertFrom(from);
-		log.flush();
-		log <<Simulator::Now().GetSeconds()<<" Node["<<node_id<<"]==> Content: "<<remote.GetIpv4()<<":"<<remote.GetPort()<<" Received";
-		NS_LOG_UNCOND(log.str());
+		logMsg.flush();
+		logMsg <<Simulator::Now().GetSeconds()<<" Node["<<node_id<<"]==> Content: "<<remote.GetIpv4()<<":"<<remote.GetPort()<<" Received";
+		NS_LOG_UNCOND(logMsg.str());
 		neighborIps[node_id]=remote.GetIpv4();
 	}
 }
@@ -82,7 +82,7 @@ void ReceivePacket(Ptr<Socket> socket){
 	Address from;
 	string msg;
 	string data;
-	stringstream log;
+	stringstream logMsg;
 	int node_id = socket->GetNode()->GetId();
 	
 	pkt = socket->RecvFrom(from);
@@ -90,14 +90,14 @@ void ReceivePacket(Ptr<Socket> socket){
 	uint32_t content = pkt->CopyData(buffer, pkt->GetSize());
 	data = string((char*)buffer);
 	
-	log <<Simulator::Now().GetSeconds()<<"Node["<<node_id<<"]==> Content: "<<data<<" pktSize = "<<content<<"bytes";
-	NS_LOG_UNCOND(log.str());
+	logMsg <<Simulator::Now().GetSeconds()<<"Node["<<node_id<<"]==> Content: "<<data<<" pktSize = "<<content<<"bytes";
+	NS_LOG_UNCOND(logMsg.str());
 }
 static void sendNeighborAd(Ptr<Node> srcNode, uint32_t pktSize, uint32_t numPkt,Time pktInterval){
 	TypeId tid = TypeId::LookupByName("ns3::UdpSocketFactory");
 	uint32_t nodeId;
 	stringstream sendMsg;
-	stringstream log;
+	stringstream logMsg;
 
 	NS_LOG_UNCOND("start sending Ad");	
 	nodeId = srcNode->GetId();
@@ -119,7 +119,7 @@ static void sendNeighborAd(Ptr<Node> srcNode, uint32_t pktSize, uint32_t numPkt,
 static void GenerateTraffic(Ptr<Node> srcNode, uint32_t pktSize, uint32_t numPkt,Time pktInterval){
 	TypeId tid = TypeId::LookupByName("ns3::UdpSocketFactory");
 	stringstream sendMsg;
-	stringstream log;
+	stringstream logMsg;
 	//int i = 0;
 	
 	//sender socket setting
