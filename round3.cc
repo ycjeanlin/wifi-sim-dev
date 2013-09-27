@@ -96,12 +96,8 @@ void ReceivePacket(Ptr<Socket> socket){
 }
 static void sendNeighborAd(Ptr<Node> srcNode, uint32_t pktSize, uint32_t numPkt,Time pktInterval){
 	TypeId tid = TypeId::LookupByName("ns3::UdpSocketFactory");
-	uint32_t nodeId;
-	stringstream sendMsg;
-	stringstream logMsg;
 
 	NS_LOG_UNCOND("start sending Ad");	
-	nodeId = srcNode->GetId();
 
 	Simulator::Schedule(pktInterval, &GenerateTraffic, srcNode, pktSize, numPkt-1, pktInterval);
 }
