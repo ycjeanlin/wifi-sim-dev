@@ -41,14 +41,31 @@ using namespace std;
 MobileDevice mDevice[NUM_NODES];
 
 //Functions Declaration
+static void SendEchoPkt(Ptr<Node> srcNode, uint32_t pktSize){
+	TypeId tid = typeId::LookupByName("ns3::UdpSocketFactory");
+	stringstream sendMsg;
+	stringstream log;
+
+	Ptr<Socket> source =Socket::CreateSocket(srcNode, tid);
+	InetSocket probe = InetSocketAddress(Ipv4Address("255.255.255.255"), 1119);
+	source->SetAllowBroadcast(true);
+	source->Connect(probe);
+	sendMsg<<"probe";
+	Ptr<Packet> pkt = Create<Packet>((uint8_t*)sendMsg.str().c_str(), pktSize); 
+
+	source->send(pkt);
+
+}
+
+
 
 int main(int argc, char *argv[]){
 	string phyMode("DsssRate1Mbps");
 	uint32_t numNodes = NUM_NODES;
 	uint32_t pktSize = 1000;//bytes
-	uint32_t numPkt = 1;//bytes
+	// uint32_t numPkt = 1;//bytes
 	uint32_t stopTime = 30;
-	uint32_t interval = 5;
+	// uint32_t interval = 5;
 	uint32_t initSrcNode = 0;
 	bool enTracing = false;
 
@@ -127,7 +144,7 @@ int main(int argc, char *argv[]){
 		std::cout<<"Ip Address "<<i<<"  = "<<addr<<std::endl;
 		InetSocketAddress echoLocal = InetSocketAddress(wifiNodes.Get(i)->GetObject<Ipv4>()->GetAddress(1,0).GetLocal(),1119);
 		echoSink->Bind(echoLocal);
-		echoSink->SetRecvCallback(MakeCallback(&EchoPacket));
+		echoSink->SetRecvCallback(MakeCallback(&recvEchoPkt));
 	}
 
 	MobilityHelper mobility;
@@ -144,7 +161,7 @@ int main(int argc, char *argv[]){
 
 	mobility.Install(wifiNodes);
 
-	Simulator::Schedule(Seconds(0.0), &GenerateTraffic,wifiNodes.Get(initSrcNode), pktSize, numPkt, pktInterval);
+	Simulator::Schedule(Seconds(0.0), &SendEchoPkt,wifiNodes.Get(initSrcNode), pktSize);
 
 	NS_LOG_INFO("Run Simulation.");
 	
