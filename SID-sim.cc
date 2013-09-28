@@ -57,6 +57,50 @@ static void SendEchoPkt(Ptr<Node> srcNode, uint32_t pktSize){
 
 }
 
+void RecvEchoPkt(Ptr<Socket> socket){
+	Ptr<Packet> pkt;
+	Address from;
+	Ipv4Address fromAddrIpv4;
+	InetSocketAddress remote;  
+	string data;
+	stringstream log;
+	uint32_t nodeId = socket->GetNode()->GetId();
+	uint32_t connectNode;
+
+	pkt = socket->RecvFrom(from);
+	uint8_t *buffer = new uint8_t[pkt->GetSize()];
+	pkt->CopyData(buffer, pkt->GetSize());
+	data = string((char*)buffer);
+	if(data="probe"){
+		remote = InetSoetAddress::ConvertFrom(from);
+		fromAddrIpv4 = remote.GetIpv4();
+		InetSocketAddress echo = InetSocketAddress(fromAddrIpv4,1119);
+		socket->Connect(echo);
+
+		sendMsg.flush();
+		sendMsg<<nodeId;
+		pkt = Create<Packet>((uint8_t*)sendMsg.str().c_str(),1000);
+		socket->Send(pkt);
+#ifdef DEBUG		
+		log<<Simulator::Now().GetSeconds()<<" Node["<<nodeId<<"] sends Echo Packet to "<<fromAddrIpv4;
+		NS_LOG_UNCOND(log.str());
+#endif
+	}else{
+		int interests1[5];
+		int interests2[5];
+
+#ifdef	DEBUG	
+		log<<Simulator::Now()<<" Node["<<nodeId<<"] receives a echo packet from Node["<<data<<"]";
+		NS_LOG_UNCOND(log.str());
+#endif
+		//Connect to a node
+		// connectNode = atoi(data.c_str());
+		// mDevice[connectNode].getNodeInterests(interests2);
+		// mDevice[nodeId].updateADCL()
+		
+	}
+	
+}
 
 
 int main(int argc, char *argv[]){
