@@ -33,27 +33,28 @@
 #define TRANSMISSION_RANGE 10.0
 #define NUM_NODES 30
 
-#include "MobileDevice.h"
 
 using namespace ns3;
 using namespace std;
 
 MobileDevice mDevice[NUM_NODES];
 
+static void SendEchoPkt(Ptr<Node> srcNode, uint32_t pktSize);
+
 //Functions Declaration
 static void SendEchoPkt(Ptr<Node> srcNode, uint32_t pktSize){
-	TypeId tid = typeId::LookupByName("ns3::UdpSocketFactory");
 	stringstream sendMsg;
 	stringstream log;
 
+	TypeId tid = TypeId::LookupByName("ns3::UdpSocketFactory");
 	Ptr<Socket> source =Socket::CreateSocket(srcNode, tid);
-	InetSocket probe = InetSocketAddress(Ipv4Address("255.255.255.255"), 1119);
+	InetSocketAddress probe = InetSocketAddress(Ipv4Address("255.255.255.255"), 1119);
 	source->SetAllowBroadcast(true);
 	source->Connect(probe);
 	sendMsg<<"probe";
 	Ptr<Packet> pkt = Create<Packet>((uint8_t*)sendMsg.str().c_str(), pktSize); 
 
-	source->send(pkt);
+	source->Send(pkt);
 
 }
 
@@ -61,18 +62,18 @@ void RecvEchoPkt(Ptr<Socket> socket){
 	Ptr<Packet> pkt;
 	Address from;
 	Ipv4Address fromAddrIpv4;
-	InetSocketAddress remote;  
 	string data;
 	stringstream log;
+	stringstream sendMsg;
 	uint32_t nodeId = socket->GetNode()->GetId();
-	uint32_t connectNode;
+	//uint32_t connectNode;
 
 	pkt = socket->RecvFrom(from);
 	uint8_t *buffer = new uint8_t[pkt->GetSize()];
 	pkt->CopyData(buffer, pkt->GetSize());
 	data = string((char*)buffer);
-	if(data="probe"){
-		remote = InetSoetAddress::ConvertFrom(from);
+	if(data=="probe"){
+		InetSocketAddress remote = InetSocketAddress::ConvertFrom(from);
 		fromAddrIpv4 = remote.GetIpv4();
 		InetSocketAddress echo = InetSocketAddress(fromAddrIpv4,1119);
 		socket->Connect(echo);
@@ -86,8 +87,8 @@ void RecvEchoPkt(Ptr<Socket> socket){
 		NS_LOG_UNCOND(log.str());
 #endif
 	}else{
-		int interests1[5];
-		int interests2[5];
+		//int interests1[5];
+		//int interests2[5];
 
 #ifdef	DEBUG	
 		log<<Simulator::Now()<<" Node["<<nodeId<<"] receives a echo packet from Node["<<data<<"]";
@@ -107,18 +108,13 @@ int main(int argc, char *argv[]){
 	string phyMode("DsssRate1Mbps");
 	uint32_t numNodes = NUM_NODES;
 	uint32_t pktSize = 1000;//bytes
-	// uint32_t numPkt = 1;//bytes
 	uint32_t stopTime = 30;
-	// uint32_t interval = 5;
 	uint32_t initSrcNode = 0;
 	bool enTracing = false;
 
 	CommandLine cmd;
-	cmd.AddValue("numPkt", "number of packet",numPkt);
-	cmd.AddValue("interval", "the time period of each traffic generation",interval);
 	cmd.AddValue("stopTime", "the time when the simulation ended(s)", stopTime);
 	cmd.AddValue("enTracing", "enable Tracing", enTracing);
-	cmd.AddValue("verbose", "Tell echo application to log if true", verbose);
 
 	cmd.Parse(argc, argv);	
 
@@ -129,7 +125,7 @@ int main(int argc, char *argv[]){
 
 	//give each node a mobile device
 	for (int i = 0; i < NUM_NODES; ++i){
-		mDevice[i].nodeId = wifiNodes.GetId(i);
+		mDevice[i].nodeId = i;
 	}
 
 	//initialize some ad packets
@@ -188,7 +184,7 @@ int main(int argc, char *argv[]){
 		std::cout<<"Ip Address "<<i<<"  = "<<addr<<std::endl;
 		InetSocketAddress echoLocal = InetSocketAddress(wifiNodes.Get(i)->GetObject<Ipv4>()->GetAddress(1,0).GetLocal(),1119);
 		echoSink->Bind(echoLocal);
-		echoSink->SetRecvCallback(MakeCallback(&recvEchoPkt));
+		echoSink->SetRecvCallback(MakeCallback(&SendEchoPkt));
 	}
 
 	MobilityHelper mobility;

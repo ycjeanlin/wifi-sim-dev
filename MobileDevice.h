@@ -1,4 +1,4 @@
-#include <Vector>
+#include <vector>
 #include <cstdlib>
 
 #define EPSILON1 0.1
@@ -11,22 +11,22 @@
 
 struct Check{
 	uint32_t provider;
-	uint32_t faceValue;
+	int faceValue;
 };
 
 class MobileDevice{
 	public:
-		void updateADCL(int interests[], double pktValtemp[][]);
-		void updateCRCL(uint32_t nodeId, double contactP[], int ptr);
-		int getCheckContactP(double contactP[][]);
+		void updateADCL(int interests[], double pktValtemp[][4]);
+		void updateCRCL(uint32_t nodeId, double contactP[][2], int ptr);
+		int getCheckContactP(double contactP[][2]);
 		void getNodeInterests(int interests[]);
-		void setPktList(const uint32_t pktContainer[][], int ptr);
+		void setPktList(const int pktContainer[][5], int ptr);
 		void setCheckList(const vector<Check> &chkContainer);
-		void recvAdPacket(uint32_t pktContainer[][], vector<Check> &chkContainer);
-		uint32_t cashChecks(vector<Check> &chkContainer);
+		void recvAdPacket(int pktContainer[][5], vector<Check> &chkContainer);
+		int cashChecks(vector<Check> &chkContainer);
 		MobileDevice();
 		uint32_t nodeId;
-		uint32_t AdPktContainer[BUFFER_SIZE][5]; 
+		int AdPktContainer[BUFFER_SIZE][5]; 
 		int ptrAdContainer;
 		vector<Check> checkContainer;	
 	private:
@@ -35,8 +35,8 @@ class MobileDevice{
 		double pktValue[NUM_OF_INTERESTS][4]; //ad contact likelihood
 		double checkValue[BUFFER_SIZE][5]; //check reward contact likelihood
 		int ptrChkValue;
-		uint32_t credits;
-		uint32_t pktList[BUFFER_SIZE][3];
+		int credits;
+		int pktList[BUFFER_SIZE][3];
 		int ptrPktList;
 		int chkList[BUFFER_SIZE]; //for cash the checks of the node
 		int ptrChkList;
@@ -51,7 +51,7 @@ MobileDevice::MobileDevice(){
 	ptrPktList = 0;
 }
 
-void setInterests(){
+void MobileDevice::setInterests(){
 	int num;
 	int i=0;
 	srand(time(NULL));
@@ -77,20 +77,20 @@ void setInterests(){
 
 }
 
-void getNodeInterests(int interests[]){
+void MobileDevice::getNodeInterests(int interests[]){
 	for (int i = 0; i < NUM_OF_INTERESTS; i++)
 	{
 		nodeInterests[i] = interests[i];
 	}
 }
 
-void MobileDevice::updateADCL(uint32_t interests[], double pktValtemp[][]){
+void MobileDevice::updateADCL(int interests[], double pktValtemp[][4]){
 	double directContactP;
 	double inDirectContactP;
 
 	for(int i=0;i<NUM_OF_USER_INTERESTS;i++){
 		//Calculate the directly contact likelihood
-		DirectContactP = pktValue[interests[i]][0];
+		directContactP = pktValue[interests[i]][0];
 		pktValue[interests[i]][0]=(1-EPSILON1)*directContactP+EPSILON1;
 	}
 		
@@ -104,11 +104,12 @@ void MobileDevice::updateADCL(uint32_t interests[], double pktValtemp[][]){
 	}
 }
 
-void MobileDevice::updateCRCL(uint32_t nodeId, double contactP[][], int ptr){
+void MobileDevice::updateCRCL(uint32_t nodeId, double contactP[][2], int ptr){
 	double directContactP;
 	double inDirectContactP;
 	bool found = false;	
 	int nodeIdx;
+	int usedSize;
 
     //Calculate the directly contact likelihood
     usedSize = ptrChkValue;
@@ -125,7 +126,7 @@ void MobileDevice::updateCRCL(uint32_t nodeId, double contactP[][], int ptr){
 		checkValue[nodeIdx][1] = (1-EPSILON1)*directContactP+EPSILON1;
 	}else{
 		if(ptrChkValue <= BUFFER_SIZE){
-			chkValue[ptrChkValue][0] = nodeId;
+			checkValue[ptrChkValue][0] = nodeId;
 			directContactP = checkValue[ptrChkValue][1];
 			checkValue[ptrChkValue][1] = (1-EPSILON1)*directContactP+EPSILON1;
 			ptrChkValue++;
@@ -149,7 +150,7 @@ void MobileDevice::updateCRCL(uint32_t nodeId, double contactP[][], int ptr){
 	 		checkValue[nodeIdx][2] = (1-EPSILON2)*contactP[i][1]+EPSILON2*inDirectContactP;
 		}else{
 			if(ptrChkValue <= BUFFER_SIZE){
-				chkValue[ptrChkValue][0] = i;
+				checkValue[ptrChkValue][0] = i;
 				inDirectContactP = 0;
 				checkValue[ptrChkValue][2] = (1-EPSILON2)*contactP[i][1]+EPSILON2*inDirectContactP;
 				ptrChkValue++;
@@ -162,7 +163,7 @@ void MobileDevice::updateCRCL(uint32_t nodeId, double contactP[][], int ptr){
 	}
 }
 
-int MobileDevice::getCheckContactP(double contactP[][]){
+int MobileDevice::getCheckContactP(double contactP[][2]){
 	int ptr = 0;
 
 	for (int i = 0; i < ptrChkValue; i++){
@@ -174,7 +175,7 @@ int MobileDevice::getCheckContactP(double contactP[][]){
 	return ptr;
 }
 
-void MobileDevice::setPktList(const uint32_t pktContainer[][], int ptr){
+void MobileDevice::setPktList(const int pktContainer[][5], int ptr){
 	bool found;
 	int idx = 0;
 
@@ -199,17 +200,19 @@ void MobileDevice::setPktList(const uint32_t pktContainer[][], int ptr){
 }
 
 void MobileDevice::setCheckList(const vector<Check> &chkContainer){
-	int idx;
-	for (int i = 0; i < chkContainer.size(); i++){
+	int idx = 0;
+	for (uint32_t i = 0; i < chkContainer.size(); i++){
 		if(chkContainer[i].provider == nodeId){
 			chkList[idx]=i;
-			idx++
+			idx++;
 		}
 	}
 	ptrChkList = idx;
 }
 
-void MobileDevice::recvAdPacket(uint32_t pktContainer[][], vector<Check> &chkContainer){
+void MobileDevice::recvAdPacket(int pktContainer[][5], vector<Check> &chkContainer){
+	Check chk;
+	
 	for(int i=0;i<ptrPktList;i++){
 		for(int j=0;j<NUM_OF_USER_INTERESTS;j++){
 
@@ -220,10 +223,12 @@ void MobileDevice::recvAdPacket(uint32_t pktContainer[][], vector<Check> &chkCon
 					for (int k = 0; k < 4; k++){
 						AdPktContainer[ptrAdContainer][k] = pktContainer[pktList[i][0]][k];
 					}
-					AdPktContainer[ptrAdContainer][k] = 0;
+					AdPktContainer[ptrAdContainer][4] = 0;
 					ptrAdContainer++;
 					//sign the check
-					chkContainer.push_back(Check(pktContainer[pktList[i][0]][1], pktList[i][1]));					
+					chk.provider = pktContainer[pktList[i][0]][1];
+					chk.faceValue = pktList[i][1];
+					chkContainer.push_back(chk);					
 				}
 			}
 		}
@@ -231,11 +236,11 @@ void MobileDevice::recvAdPacket(uint32_t pktContainer[][], vector<Check> &chkCon
 	ptrPktList = 0;
 }
 
-uint32_t cashChecks(vector<Check> &chkContainer){
-	uint32_t cashCredits = 0;
+int MobileDevice::cashChecks(vector<Check> &chkContainer){
+	int cashCredits = 0;
 	for(int i=0;i<ptrChkList;i++){
 		cashCredits =+ chkContainer[chkList[i]].faceValue;
-		chkContainer.erase(chkList[i]);
+		chkContainer.erase(chkContainer.begin()+chkList[i]);
 	}
 
 	return cashCredits;
