@@ -1,4 +1,5 @@
 #include <Vector>
+#include <cstdlib>
 
 #define EPSILON1 0.1
 #define EPSILON2 0.2
@@ -22,12 +23,14 @@ class MobileDevice{
 		void setCheckList(const vector<Check> &chkContainer);
 		void recvAdPacket(uint32_t pktContainer[][], vector<Check> &chkContainer);
 		uint32_t cashChecks(vector<Check> &chkContainer);
+		MobileDevice();
 		uint32_t nodeId;
 		uint32_t AdPktContainer[BUFFER_SIZE][5]; 
 		int ptrAdContainer;
 		vector<Check> checkContainer;	
 	private:
-		uint32_t nodeInterests[NUM_OF_USER_INTERESTS];
+		void setInterests();
+		int nodeInterests[NUM_OF_USER_INTERESTS];
 		double pktValue[NUM_OF_INTERESTS][4]; //ad contact likelihood
 		double checkValue[BUFFER_SIZE][5]; //check reward contact likelihood
 		int ptrChkValue;
@@ -37,6 +40,41 @@ class MobileDevice{
 		int chkList[BUFFER_SIZE]; //for cash the checks of the node
 		int ptrChkList;
 };
+
+MobileDevice::MobileDevice(){
+	credits = 100;
+	setInterests();
+	ptrAdContainer = 0;
+	ptrChkValue = 0;
+	ptrChkList = 0;
+	ptrPktList = 0;
+}
+
+void setInterests(){
+	int num;
+	int i=0;
+	srand(time(NULL));
+
+	num = rand()%10;
+	nodeInterests[i] = num;
+	i++;
+	while(i<=5){
+		bool contained = false;
+
+		num=rand()%10;
+		for(int j=0;j<i;j++){
+			if(num==nodeInterests[j]){
+				contained = true;
+			}
+		}
+
+		if(!contained ){
+			nodeInterests[i]=num;
+			i++;
+		}
+	}
+
+}
 
 void MobileDevice::updateADCL(uint32_t interests[], double pktValtemp[][]){
 	double directContactP;

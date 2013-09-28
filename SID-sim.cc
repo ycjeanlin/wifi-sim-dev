@@ -29,13 +29,133 @@
 
 #include "MobileDevice.h"
 
+#define DEBUG 
 #define TRANSMISSION_RANGE 10.0
-#define NUM_NODES 10
+#define NUM_NODES 30
 
 #include "MobileDevice.h"
 
 using namespace ns3;
 using namespace std;
 
+MobileDevice mDevice[NUM_NODES];
+
 //Functions Declaration
 
+int main(int argc, char *argv[]){
+	string phyMode("DsssRate1Mbps");
+	uint32_t numNodes = NUM_NODES;
+	uint32_t pktSize = 1000;//bytes
+	uint32_t numPkt = 1;//bytes
+	uint32_t stopTime = 30;
+	uint32_t interval = 5;
+	uint32_t initSrcNode = 0;
+	bool enTracing = false;
+
+	CommandLine cmd;
+	cmd.AddValue("numPkt", "number of packet",numPkt);
+	cmd.AddValue("interval", "the time period of each traffic generation",interval);
+	cmd.AddValue("stopTime", "the time when the simulation ended(s)", stopTime);
+	cmd.AddValue("enTracing", "enable Tracing", enTracing);
+	cmd.AddValue("verbose", "Tell echo application to log if true", verbose);
+
+	cmd.Parse(argc, argv);	
+
+	Time pktInterval = Seconds(interval);
+
+	NodeContainer wifiNodes;
+	wifiNodes.Create(numNodes);
+
+	//give each node a mobile device
+	for (int i = 0; i < NUM_NODES; ++i){
+		mDevice[i].nodeId = wifiNodes.GetId(i);
+	}
+
+	//initialize some ad packets
+	for (int i = 0; i < 20; ++i){
+		mDevice[i].AdPktContainer[0][0] = i;
+		mDevice[i].AdPktContainer[0][1] = mDevice[i].nodeId;
+		mDevice[i].AdPktContainer[0][2] = 1;
+		mDevice[i].AdPktContainer[0][3] = i%10;
+		mDevice[i].AdPktContainer[0][4] = 200;
+		mDevice[i].ptrAdContainer++;
+
+	}
+
+	// The below set of helpers will help us to put together the wifi NICs we want
+	WifiHelper wifi;
+
+	wifi.SetStandard (WIFI_PHY_STANDARD_80211b);
+
+	YansWifiPhyHelper wifiPhy =  YansWifiPhyHelper::Default ();
+	// This is one parameter that matters when using FixedRssLossModel
+	// set it to zero; otherwise, gain will be added
+	wifiPhy.Set ("RxGain", DoubleValue (0) ); 
+	// ns-3 supports RadioTap and Prism tracing extensions for 802.11b
+	wifiPhy.SetPcapDataLinkType (YansWifiPhyHelper::DLT_IEEE802_11_RADIO); 
+
+	YansWifiChannelHelper wifiChannel;
+	wifiChannel.SetPropagationDelay ("ns3::ConstantSpeedPropagationDelayModel");
+	// The below FixedRssLossModel will cause the rss to be fixed regardless
+	// of the distance between the two stations, and the transmit power
+	wifiChannel.AddPropagationLoss ("ns3::RangePropagationLossModel","MaxRange",DoubleValue (TRANSMISSION_RANGE));
+	wifiPhy.SetChannel (wifiChannel.Create ());
+
+	// Add a non-QoS upper mac, and disable rate control
+	NqosWifiMacHelper wifiMac = NqosWifiMacHelper::Default ();
+	wifi.SetRemoteStationManager ("ns3::ConstantRateWifiManager",
+		                "DataMode",StringValue (phyMode),
+		                "ControlMode",StringValue (phyMode));
+	// Set it to adhoc mode
+	wifiMac.SetType ("ns3::AdhocWifiMac");
+	NetDeviceContainer devices = wifi.Install (wifiPhy, wifiMac, wifiNodes);
+
+	InternetStackHelper internet;
+	internet.Install(wifiNodes);
+
+	Ipv4AddressHelper ipv4;
+	NS_LOG_INFO("Assign IP Addresses.");
+	ipv4.SetBase("10.1.1.0", "255.255.255.0");
+	Ipv4InterfaceContainer i = ipv4.Assign(devices);
+
+	TypeId tid = TypeId::LookupByName("ns3::UdpSocketFactory");
+
+	//Assign receive sink to each nodes
+	for(uint32_t i=0;i<numNodes;i++){
+		Ptr<Socket> echoSink = Socket::CreateSocket(wifiNodes.Get(i), tid);
+		Ipv4Address addr = wifiNodes.Get(i)->GetObject<Ipv4>()->GetAddress(1,0).GetLocal();
+		std::cout<<"Ip Address "<<i<<"  = "<<addr<<std::endl;
+		InetSocketAddress echoLocal = InetSocketAddress(wifiNodes.Get(i)->GetObject<Ipv4>()->GetAddress(1,0).GetLocal(),1119);
+		echoSink->Bind(echoLocal);
+		echoSink->SetRecvCallback(MakeCallback(&EchoPacket));
+	}
+
+	MobilityHelper mobility;
+	Ptr<ListPositionAllocator> positionAlloc = CreateObject<ListPositionAllocator>();
+	double x=0.0;
+
+	for(uint32_t i=0;i<numNodes;++i){
+		positionAlloc->Add(Vector(x,x,0.0));
+		x += 1.0;
+	}
+
+	mobility.SetPositionAllocator(positionAlloc);
+	mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
+
+	mobility.Install(wifiNodes);
+
+	Simulator::Schedule(Seconds(0.0), &GenerateTraffic,wifiNodes.Get(initSrcNode), pktSize, numPkt, pktInterval);
+
+	NS_LOG_INFO("Run Simulation.");
+	
+	AnimationInterface anim("round2.xml");
+
+	
+	Simulator::Stop(Seconds(stopTime));
+	Simulator::Run();
+	Simulator::Destroy();
+	
+	anim.StopAnimation();
+
+	return 0;
+}
