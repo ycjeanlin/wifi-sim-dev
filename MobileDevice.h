@@ -16,9 +16,10 @@ struct Check{
 
 class MobileDevice{
 	public:
-		void updateADCL(uint32_t interests[], double pktValtemp[][]);
+		void updateADCL(int interests[], double pktValtemp[][]);
 		void updateCRCL(uint32_t nodeId, double contactP[], int ptr);
 		int getCheckContactP(double contactP[][]);
+		void getNodeInterests(int interests[]);
 		void setPktList(const uint32_t pktContainer[][], int ptr);
 		void setCheckList(const vector<Check> &chkContainer);
 		void recvAdPacket(uint32_t pktContainer[][], vector<Check> &chkContainer);
@@ -74,6 +75,13 @@ void setInterests(){
 		}
 	}
 
+}
+
+void getNodeInterests(int interests[]){
+	for (int i = 0; i < NUM_OF_INTERESTS; i++)
+	{
+		nodeInterests[i] = interests[i];
+	}
 }
 
 void MobileDevice::updateADCL(uint32_t interests[], double pktValtemp[][]){
