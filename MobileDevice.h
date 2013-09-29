@@ -8,7 +8,7 @@
 #define NUM_OF_USER_INTERESTS 5
 #define BUFFER_SIZE 200
 
-
+using namespace std;
 struct Check{
 	uint32_t provider;
 	int faceValue;

@@ -118,8 +118,6 @@ int main(int argc, char *argv[]){
 
 	cmd.Parse(argc, argv);	
 
-	Time pktInterval = Seconds(interval);
-
 	NodeContainer wifiNodes;
 	wifiNodes.Create(numNodes);
 
@@ -184,7 +182,7 @@ int main(int argc, char *argv[]){
 		std::cout<<"Ip Address "<<i<<"  = "<<addr<<std::endl;
 		InetSocketAddress echoLocal = InetSocketAddress(wifiNodes.Get(i)->GetObject<Ipv4>()->GetAddress(1,0).GetLocal(),1119);
 		echoSink->Bind(echoLocal);
-		echoSink->SetRecvCallback(MakeCallback(&SendEchoPkt));
+		echoSink->SetRecvCallback(MakeCallback(&RecvEchoPkt));
 	}
 
 	MobilityHelper mobility;
