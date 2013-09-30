@@ -180,7 +180,6 @@ int MobileDevice::getChkContactP(double chkContactP[][2]){
 }
 
 void MobileDevice::getPktContactP(double pktContactP[]){
-	int ptr = 0;
 
 	for (int i = 0; i < NUM_OF_INTERESTS; i++){
 		pktValue[i][0] = pktContactP[0];

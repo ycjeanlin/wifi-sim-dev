@@ -102,7 +102,7 @@ void RecvEchoPkt(Ptr<Socket> socket){
 		log<<Simulator::Now()<<" Node["<<nodeId<<"] receives a echo packet from Node["<<connectNode<<"]";
 		NS_LOG_UNCOND(log.str());
 #endif
-		if(mDevice[nodeId].prtNeighborList<7){
+		if(mDevice[nodeId].ptrNeighborList<7){
 			mDevice[nodeId].neighborList[mDevice[nodeId].ptrNeighborList++] = connectNode;
 		}
 #ifdef DEBUG
