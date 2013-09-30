@@ -224,7 +224,9 @@ int main(int argc, char *argv[]){
 	}
 
 	mobility.SetPositionAllocator(positionAlloc);
-	mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
+	mobility.SetMobilityModel("ns3::RandomDirection2dMobilityModel",
+							  "Speed", RandomVariableValue (ConstantVariable (1)),
+                              "Pause", RandomVariableValue (ConstantVariable (0.2))););
 
 	mobility.Install(wifiNodes);
 
