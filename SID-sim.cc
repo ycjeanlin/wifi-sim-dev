@@ -56,6 +56,8 @@ static void SendEchoPkt(Ptr<Node> srcNode, uint32_t pktSize){
 
 	source->Send(pkt);
 
+	//sSimulator::Schedule(Seconds(1.0), &GenerateTraffic,wifiNodes.Get(initSrcNode), pktSize, numPkt, pktInterval);	
+
 }
 
 void RecvEchoPkt(Ptr<Socket> socket){
@@ -66,7 +68,7 @@ void RecvEchoPkt(Ptr<Socket> socket){
 	stringstream log;
 	stringstream sendMsg;
 	uint32_t nodeId = socket->GetNode()->GetId();
-	//uint32_t connectNode;
+	uint32_t connectNode;
 
 	pkt = socket->RecvFrom(from);
 	uint8_t *buffer = new uint8_t[pkt->GetSize()];
@@ -87,17 +89,45 @@ void RecvEchoPkt(Ptr<Socket> socket){
 		NS_LOG_UNCOND(log.str());
 #endif
 	}else{
-		//int interests1[5];
-		//int interests2[5];
-
+		// int interests1[5];
+		// int interests2[5];
+		// double pktContactP1[NUM_OF_INTERESTS];
+		// double pktContactP2[NUM_OF_INTERESTS];
+		// double chkContackP1[BUFFER_SIZE][2];
+		// double chkContackP2[BUFFER_SIZE][2];
+		// int ptrChkContactP1;
+		// int ptrChkContactP2;
+		connectNode = atoi(data.c_str());
 #ifdef	DEBUG	
-		log<<Simulator::Now()<<" Node["<<nodeId<<"] receives a echo packet from Node["<<data<<"]";
+		log<<Simulator::Now()<<" Node["<<nodeId<<"] receives a echo packet from Node["<<connectNode<<"]";
 		NS_LOG_UNCOND(log.str());
 #endif
-		//Connect to a node
-		// connectNode = atoi(data.c_str());
+		if(mDevice[nodeId].prtNeighborList<7){
+			mDevice[nodeId].neighborList[mDevice[nodeId].ptrNeighborList++] = connectNode;
+		}
+#ifdef DEBUG
+		for (int i = 0; i < mDevice[nodeId].ptrNeighborList; ++i)
+		{
+			cout<<"Neighbor["<<i<<"] Id: "<<mDevice[nodeId].neighborList[i]<<endl;
+		}
+#endif		
+		// //Connect to a node
+		
+		
+		// mDevice[nodeId].getNodeInterests(interests1);
+		// mDevice[nodeId].getPktContactP(pktContactP1);
+		// ptrChkContactP1 = mDevice[nodeId].getChkContactP(chkContactP1);
 		// mDevice[connectNode].getNodeInterests(interests2);
-		// mDevice[nodeId].updateADCL()
+		// mDevice[connectNode].getPktContactP(pktContactP2);
+		// ptrChkContactP2 = mDevice[connectNode].getChkContactP(chkContactP2);
+
+		// //update ADCL 
+		// mDevice[nodeId].updateADCL(interests2, pktContactP2);
+		// mDevice[connectNode].updateADCL(interests1, pktContactP1);
+
+		// //udate CRCL
+		// mDevice[nodeId].updateCRCL(connectNode, chkContactP2, ptrChkContactP2);
+		// mDevice[connectNode].updateCRCL(nodeId, chkContactP1, ptrChkContactP1);
 		
 	}
 	

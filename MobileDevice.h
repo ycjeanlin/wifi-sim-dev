@@ -16,9 +16,10 @@ struct Check{
 
 class MobileDevice{
 	public:
-		void updateADCL(int interests[], double pktValtemp[][4]);
-		void updateCRCL(uint32_t nodeId, double contactP[][2], int ptr);
-		int getCheckContactP(double contactP[][2]);
+		void updateADCL(int interests[], double pktContactP[]);
+		void updateCRCL(uint32_t nodeId, double chkContactP[][2], int ptr);
+		int getChkContactP(double chkContactP[][2]);
+		void getPktContactP(double pktContactP[]);
 		void getNodeInterests(int interests[]);
 		void setPktList(const int pktContainer[][5], int ptr);
 		void setCheckList(const vector<Check> &chkContainer);
@@ -28,7 +29,9 @@ class MobileDevice{
 		uint32_t nodeId;
 		int AdPktContainer[BUFFER_SIZE][5]; 
 		int ptrAdContainer;
-		vector<Check> checkContainer;	
+		vector<Check> checkContainer;
+		uint32_t neighborList[7];
+		int ptrNeighborList;
 	private:
 		void setInterests();
 		int nodeInterests[NUM_OF_USER_INTERESTS];
@@ -49,6 +52,7 @@ MobileDevice::MobileDevice(){
 	ptrChkValue = 0;
 	ptrChkList = 0;
 	ptrPktList = 0;
+	ptrNeighborList = 0;
 }
 
 void MobileDevice::setInterests(){
@@ -84,7 +88,7 @@ void MobileDevice::getNodeInterests(int interests[]){
 	}
 }
 
-void MobileDevice::updateADCL(int interests[], double pktValtemp[][4]){
+void MobileDevice::updateADCL(int interests[], double pktContactP[]){
 	double directContactP;
 	double inDirectContactP;
 
@@ -97,14 +101,14 @@ void MobileDevice::updateADCL(int interests[], double pktValtemp[][4]){
 	for (int i = 0; i < NUM_OF_INTERESTS; i++){
 		//Calculate the indirect contact likelihood
 		inDirectContactP = pktValue[i][1];
-		pktValue[i][1] = (1-EPSILON2)*pktValtemp[i][0]+EPSILON2*inDirectContactP;
+		pktValue[i][1] = (1-EPSILON2)*pktContactP[i]+EPSILON2*inDirectContactP;
 
 		//Update ADCL
 		pktValue[i][2] = 1 - (1-pktValue[i][0])*(1-pktValue[i][1]);
 	}
 }
 
-void MobileDevice::updateCRCL(uint32_t nodeId, double contactP[][2], int ptr){
+void MobileDevice::updateCRCL(uint32_t connectNode, double chkContactP[][2], int ptr){
 	double directContactP;
 	double inDirectContactP;
 	bool found = false;	
@@ -114,7 +118,7 @@ void MobileDevice::updateCRCL(uint32_t nodeId, double contactP[][2], int ptr){
     //Calculate the directly contact likelihood
     usedSize = ptrChkValue;
 	for(int i =0;i<usedSize;i++){
-		if(checkValue[i][0] == nodeId){
+		if(checkValue[i][0] == connectNode){
 			found = true;
 			nodeIdx=i;		
 			break;
@@ -126,8 +130,8 @@ void MobileDevice::updateCRCL(uint32_t nodeId, double contactP[][2], int ptr){
 		checkValue[nodeIdx][1] = (1-EPSILON1)*directContactP+EPSILON1;
 	}else{
 		if(ptrChkValue <= BUFFER_SIZE){
-			checkValue[ptrChkValue][0] = nodeId;
-			directContactP = checkValue[ptrChkValue][1];
+			checkValue[ptrChkValue][0] = connectNode;
+			directContactP = 0;
 			checkValue[ptrChkValue][1] = (1-EPSILON1)*directContactP+EPSILON1;
 			ptrChkValue++;
 		}
@@ -138,7 +142,7 @@ void MobileDevice::updateCRCL(uint32_t nodeId, double contactP[][2], int ptr){
 	for(int i=0;i<ptr;i++){
 		found = false;
 		for (int j = 0; j < usedSize; j++){
-			if(checkValue[j][0] == contactP[i][0]){
+			if(checkValue[j][0] == chkContactP[i][0]){
 				found = true;
 				nodeIdx = j;
 				break;
@@ -147,12 +151,12 @@ void MobileDevice::updateCRCL(uint32_t nodeId, double contactP[][2], int ptr){
 
 		if(found){
 			inDirectContactP = checkValue[nodeIdx][2];
-	 		checkValue[nodeIdx][2] = (1-EPSILON2)*contactP[i][1]+EPSILON2*inDirectContactP;
+	 		checkValue[nodeIdx][2] = (1-EPSILON2)*chkContactP[i][1]+EPSILON2*inDirectContactP;
 		}else{
 			if(ptrChkValue <= BUFFER_SIZE){
-				checkValue[ptrChkValue][0] = i;
+				checkValue[ptrChkValue][0] = chkContactP[i][0];
 				inDirectContactP = 0;
-				checkValue[ptrChkValue][2] = (1-EPSILON2)*contactP[i][1]+EPSILON2*inDirectContactP;
+				checkValue[ptrChkValue][2] = (1-EPSILON2)*chkContactP[i][1]+EPSILON2*inDirectContactP;
 				ptrChkValue++;
 			}
 		}
@@ -163,16 +167,24 @@ void MobileDevice::updateCRCL(uint32_t nodeId, double contactP[][2], int ptr){
 	}
 }
 
-int MobileDevice::getCheckContactP(double contactP[][2]){
+int MobileDevice::getChkContactP(double chkContactP[][2]){
 	int ptr = 0;
 
 	for (int i = 0; i < ptrChkValue; i++){
-		checkValue[i][0] = contactP[ptr][0];
-		checkValue[i][1] = contactP[ptr][1];
+		checkValue[i][0] = chkContactP[ptr][0];
+		checkValue[i][1] = chkContactP[ptr][1];
 		ptr++;
 	}
 
 	return ptr;
+}
+
+void MobileDevice::getPktContactP(double pktContactP[]){
+	int ptr = 0;
+
+	for (int i = 0; i < NUM_OF_INTERESTS; i++){
+		pktValue[i][0] = pktContactP[0];
+	}
 }
 
 void MobileDevice::setPktList(const int pktContainer[][5], int ptr){
