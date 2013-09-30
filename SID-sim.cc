@@ -169,7 +169,6 @@ int main(int argc, char *argv[]){
 	internet.Install(wifiNodes);
 
 	Ipv4AddressHelper ipv4;
-	NS_LOG_INFO("Assign IP Addresses.");
 	ipv4.SetBase("10.1.1.0", "255.255.255.0");
 	Ipv4InterfaceContainer i = ipv4.Assign(devices);
 
@@ -201,7 +200,7 @@ int main(int argc, char *argv[]){
 
 	Simulator::Schedule(Seconds(0.0), &SendEchoPkt,wifiNodes.Get(initSrcNode), pktSize);
 
-	NS_LOG_INFO("Run Simulation.");
+	NS_LOG_UNCOND("Run Simulation.");
 	
 	AnimationInterface anim("round2.xml");
 
